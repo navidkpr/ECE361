@@ -70,11 +70,5 @@ int main( int argc, char *argv[] )
     printf("deliver: sent %d bytes to server\n", sendNumBytes);
     close(sockfd);
 
-    char response[3000];
-    if (recvfrom(sockfd, response, sizeof(response), 0, servinfo->ai_addr, &servinfo->ai_addrlen) < 0) {
-        printf("Recieve Error\n");
-        return -1;
-    }
-    puts(response);
     return 0;
 }
