@@ -4,7 +4,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#define MYPORT "3490"  // the port users will be connecting to
+#define MYPORT "3469"  // the port users will be connecting to
 #define BACKLOG 10 
 
 int main() {
