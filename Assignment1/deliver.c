@@ -11,15 +11,15 @@ int main( int argc, char *argv[] )
 {
     char * serverAddress = argv[1];
     char * serverPortNum= argv[2];
-    char * proto;
+    char * proto[4] = "ftp";
     char * fileName;
 
-    if (argc != 3) {
-        fprintf(stderr,"usage: deliver ServerAddress ServerPortNumber\n");
-        exit(1);
-    }
+    // if (argc != 3) {
+    //     fprintf(stderr,"usage: deliver ServerAddress ServerPortNumber\n");
+    //     exit(1);
+    // }
     
-    scanf("%s %s", proto, fileName);
+    // scanf("%s %s", proto, fileName);
     //TODO: Check existence of fileName
 
     int sockfd;
@@ -33,7 +33,7 @@ int main( int argc, char *argv[] )
     hints.ai_flags = AI_PASSIVE;
     //-----------------------------------------------------------------------------------------------------------
 
-    if ((rv = getaddrinfo(NULL, SERVERPORT, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(NULL, MYPORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
@@ -44,7 +44,7 @@ int main( int argc, char *argv[] )
     }
     printf("Socket created successfully\n");
     
-    if ((numbytes = sendto(sockfd, proto, strlen(proto), 0,
+    if ((numBytes = sendto(sockfd, proto, strlen(proto), 0,
         servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
         perror("deliver: sendto");
         exit(1);
@@ -52,7 +52,7 @@ int main( int argc, char *argv[] )
 
 
     freeaddrinfo(servinfo);
-    printf("deliver: sent %d bytes to server\n", numbytes);
+    printf("deliver: sent %d bytes to server\n", numBytes);
     close(sockfd);
 
     return 0;
