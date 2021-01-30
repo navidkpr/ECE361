@@ -9,6 +9,7 @@
 
 int main() {
     struct sockaddr_storage client_addr;
+    
     socklen_t addr_size;
     struct addrinfo hints, *res;
     int sockfd, new_fd;
@@ -41,13 +42,12 @@ int main() {
     addr_size = sizeof client_addr;
     new_fd = accept(sockfd, (struct sockaddr *)&client_addr, &addr_size);
 
-
-
-    if (recvfrom(sockfd, client_message, sizeof(client_message), 0,
-            (struct sockaddr*)&client_addr, &client_struct_length) < 0){
-            printf("Couldn't receive\n");
-            return -1;
-        }
+    char client_message[3000];
+    if (recvfrom(sockfd, client_message, sizeof(client_message), 0, (struct sockaddr*)&client_addr, &addr_size) < 0) {
+        printf("Couldn't receive\n");
+        return -1;
+    }
+    printf("Msg from client: %s\n", client_message);
 
     close(sockfd);
 }
