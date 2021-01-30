@@ -49,6 +49,7 @@ int main() {
             printf("Recieve Error\n");
             return -1;
         }
+        puts(client_message);
 
         char *response;
         if (client_message == "ftp")
