@@ -42,7 +42,7 @@ int main( int argc, char *argv[] )
 
 
     gethostname(hostname, 100);
-    if ((rv = getaddrinfo(hostname, SERVERPORT, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(NULL, SERVERPORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
