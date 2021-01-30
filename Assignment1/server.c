@@ -4,7 +4,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#define MYPORT "3490"  // the port users will be connecting to
+#define MYPORT "3469"  // the port users will be connecting to
 #define BACKLOG 10 
 
 int main() {
@@ -35,13 +35,9 @@ int main() {
 
     printf("Done with binding\n");
     printf("Listening for incoming messages...\n\n");
-    
-    listen(sockfd, BACKLOG);
 
 
     addr_size = sizeof client_addr;
-    new_fd = accept(sockfd, (struct sockaddr *)&client_addr, &addr_size);
-
     char client_message[3000];
     if (recvfrom(sockfd, client_message, sizeof(client_message), 0, (struct sockaddr*)&client_addr, &addr_size) < 0) {
         printf("Couldn't receive\n");
