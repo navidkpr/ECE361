@@ -34,16 +34,32 @@ int main() {
     }
 
     printf("Done with binding\n");
-    printf("Listening for incoming messages...\n\n");
+
+    while (1) {
+        printf("Listening for incoming messages...\n\n");
 
 
-    addr_size = sizeof client_addr;
-    char client_message[3000];
-    if (recvfrom(sockfd, client_message, sizeof(client_message), 0, (struct sockaddr*)&client_addr, &addr_size) < 0) {
-        printf("Couldn't receive\n");
-        return -1;
+        addr_size = sizeof client_addr;
+        char client_message[3000];
+        if (recvfrom(sockfd, client_message, sizeof(client_message), 0, (struct sockaddr*)&client_addr, &addr_size) < 0) {
+            printf("Recieve Error\n");
+            return -1;
+        }
+
+        char *response;
+        if (client_message == "ftp")
+            response = "yes";
+        else
+            response = "no";
+
+        printf("Msg from client: %s\n", client_message);
+        
+        if (sendto(sockfd, response, strlen(response), 0,
+            (struct sockaddr*)&client_addr, &addr_size) < 0){
+            printf("Reesponse Error\n");
+            return -1;
+        }
     }
-    printf("Msg from client: %s\n", client_message);
 
     close(sockfd);
 }
