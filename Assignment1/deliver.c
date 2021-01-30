@@ -9,7 +9,6 @@
 #include <netdb.h>
 
 #define SERVERPORT "3469"
-#define HOSTNAME "ug136.eecg.toronto.edu"
 
 int main( int argc, char *argv[] )
 {
@@ -32,6 +31,7 @@ int main( int argc, char *argv[] )
     int sendNumBytes;
     int recieveNumBytes;
     char buffer[1000];
+    char hostname[100];
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -39,7 +39,10 @@ int main( int argc, char *argv[] )
     hints.ai_flags = AI_PASSIVE;
     //-----------------------------------------------------------------------------------------------------------
 
-    if ((rv = getaddrinfo(HOSTNAME, SERVERPORT, &hints, &servinfo)) != 0) {
+
+    gethostname(hostname, 100);
+    puts( hostname );
+    if ((rv = getaddrinfo(hostname, SERVERPORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
