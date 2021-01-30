@@ -7,12 +7,14 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <time.h>
 
 #define SERVERPORT "3470"
 
 int main( int argc, char *argv[] )
 {
-
+    clock_t start, end;
+    double cpu_time_used;
     // char * serverAddress = argv[1];
     // char * serverPortNum= argv[2];
     char * proto = "ftp";
@@ -54,6 +56,7 @@ int main( int argc, char *argv[] )
     }
     printf("Socket created successfully\n");
     
+    start = clock();
     if ((sendNumBytes = sendto(sockfd, proto, strlen(proto), 0,
         servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
         perror("deliver: sendto");
@@ -62,7 +65,10 @@ int main( int argc, char *argv[] )
 
     recieveNumBytes = recvfrom(sockfd, (char *)buffer, 1000,  
                 0, servinfo->ai_addr, 
-                &servinfo->ai_addrlen); 
+                &servinfo->ai_addrlen);
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("RTT IS %f seconds\n", cpu_time_used);
     buffer[recieveNumBytes] = '\0'; 
     printf("Server : %s\n", buffer);
 
