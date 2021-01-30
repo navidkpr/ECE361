@@ -46,6 +46,7 @@ int main( int argc, char *argv[] )
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
+    
     sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
     if(sockfd < 0){
         printf("Error while creating socket\n");
