@@ -12,6 +12,7 @@
 
 int main( int argc, char *argv[] )
 {
+
     // char * serverAddress = argv[1];
     // char * serverPortNum= argv[2];
     char * proto = "ftp";
@@ -22,7 +23,7 @@ int main( int argc, char *argv[] )
     //     exit(1);
     // }
     
-    //scanf("%s %s", proto, fileName);
+    // scanf("%s %s", proto, fileName);
     //TODO: Check existence of fileName
 
     int sockfd;
@@ -41,11 +42,11 @@ int main( int argc, char *argv[] )
 
 
     gethostname(hostname, 100);
-    puts( hostname );
     if ((rv = getaddrinfo(hostname, SERVERPORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
+    
     sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
     if(sockfd < 0){
         printf("Error while creating socket\n");
