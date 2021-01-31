@@ -8,25 +8,60 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <time.h>
+#include <math.h>
 
 #define SERVERPORT "3470"
 
-int main( int argc, char *argv[] )
+struct Packet {
+    unsigned int total_frag;
+    unsigned int frag_no;
+    unsigned int size;
+    char* filename;
+    char filedata[1000];
+};
+
+int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
 {
     clock_t start, end;
     double cpu_time_used;
-    // char * serverAddress = argv[1];
-    // char * serverPortNum= argv[2];
-    char * proto = "ftp";
-    char * fileName;
+    char * serverAddress = argv[1];
+    char * serverPortNum= argv[2];
+    char proto[4];
+    //char * proto = "ftp";
+    char fileName[10];
 
-    // if (argc != 3) {
-    //     fprintf(stderr,"usage: deliver ServerAddress ServerPortNumber\n");
-    //     exit(1);
-    // }
+    if (argc != 3) {
+        fprintf(stderr,"usage: deliver ServerAddress ServerPortNumber\n");
+        exit(1);
+    }
     
-    // scanf("%s %s", proto, fileName);
+    
+    //Next input should be "ftp Gottem.txt" this is assuming you have a Gottem.txt in your directory
+    scanf("%s %s", proto, fileName); //fuck scanf PROTO IS NOT BEING POPULATED
+
     //TODO: Check existence of fileName
+    puts ( proto )
+    puts( fileName );
+    if (access(fileName, F_OK) != 0){
+        exit(1);
+    }
+
+    // struct Packet packet;
+    // packet.frag_no = 1;
+    // packet.filename = fileName;
+
+    // FILE *fileptr;
+    // long filelen;
+    // fileptr = fopen(packet.filename,"rb");
+    // fseek(fileptr, 0, SEEK_END);
+    // filelen = ftell(fileptr);
+    // rewind(fileptr);
+    // packet.total_frag = (long)ceil((double) filelen/1000);
+
+    
+    
+    
+
 
     int sockfd;
     struct addrinfo hints, *servinfo;
@@ -34,17 +69,18 @@ int main( int argc, char *argv[] )
     int sendNumBytes;
     int recieveNumBytes;
     char buffer[1000];
-    char hostname[100];
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_PASSIVE;
+
+    
+
     //-----------------------------------------------------------------------------------------------------------
 
 
-    gethostname(hostname, 100);
-    if ((rv = getaddrinfo(NULL, SERVERPORT, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(serverAddress, serverPortNum, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
@@ -55,6 +91,31 @@ int main( int argc, char *argv[] )
         return -1;
     }
     printf("Socket created successfully\n");
+
+    // int x;
+    // for (x = 1; x <= packet.total_frag; x++){
+    //     packet.frag_no = (unsigned int)x;
+    //     if (filelen > 1000){
+    //         packet.size = 1000;
+    //     }
+    //     else{
+    //         packet.size = filelen;
+    //     }
+    //     filelen -= 1000;
+    //     fread(packet.filedata,packet.size,1,fileptr); //fread increments fileptr
+
+    //     char packetString[1500];
+    //     if ((sendNumBytes = sendto(sockfd, packetString, strlen(packetString), 0,
+    //         servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
+    //         perror("deliver: sendto");
+    //         exit(1);
+    //     }
+    //     recieveNumBytes = recvfrom(sockfd, (char *)buffer, 1000,  
+    //                 0, servinfo->ai_addr, 
+    //                 &servinfo->ai_addrlen);
+    // }
+    
+    
     
     start = clock();
     if ((sendNumBytes = sendto(sockfd, proto, strlen(proto), 0,
@@ -69,11 +130,16 @@ int main( int argc, char *argv[] )
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
     printf("RTT IS %f seconds\n", cpu_time_used);
-    buffer[recieveNumBytes] = '\0'; 
-    printf("Server : %s\n", buffer);
+    buffer[recieveNumBytes] = '\0';
+    if (strcmp(buffer, "yes") == 0){
+        printf("A file transfer can start\n");
+    } 
+
+
+    //printf("Server : %s\n", buffer);
 
     freeaddrinfo(servinfo);
-    printf("deliver: sent %d bytes to server\n", sendNumBytes);
+    //printf("deliver: sent %d bytes to server\n", sendNumBytes);
     close(sockfd);
 
     return 0;

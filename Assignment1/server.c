@@ -10,6 +10,7 @@
 
 #define MYPORT "3470"  // the port users will be connecting to
 #define BACKLOG 10 
+#define MYHOST NULL
 
 int main() {
     struct sockaddr_storage client_addr;
@@ -17,13 +18,14 @@ int main() {
     socklen_t addr_size;
     struct addrinfo hints, *res;
     int sockfd, new_fd;
+    int recieveNumBytes;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_PASSIVE;
 
-    getaddrinfo(NULL, MYPORT, &hints, &res);
+    getaddrinfo(MYHOST, MYPORT, &hints, &res);
 
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if(sockfd < 0){
@@ -44,20 +46,20 @@ int main() {
 
 
     addr_size = sizeof client_addr;
-    char client_message[3000];
-    if (recvfrom(sockfd, client_message, sizeof(client_message), 0, (struct sockaddr*)&client_addr, &addr_size) < 0) {
+    char client_message[1000];
+    if ((recieveNumBytes = recvfrom(sockfd, client_message, sizeof(client_message), 0, (struct sockaddr*)&client_addr, &addr_size)) < 0) {
         printf("Recieve Error\n");
         return -1;
     }
-    puts(client_message);
-
+    printf("Msg from client: %s\n", client_message);
+    client_message[recieveNumBytes] = '\0';
     char *response;
     if (strcmp(client_message, "ftp") == 0)
         response = "yes";
     else
         response = "no";
 
-    printf("Msg from client: %s\n", client_message);
+    
     
     if (sendto(sockfd, response, strlen(response), 0,
         (struct sockaddr*)&client_addr, addr_size) < 0){
