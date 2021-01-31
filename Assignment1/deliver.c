@@ -26,9 +26,8 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
     double cpu_time_used;
     char * serverAddress = argv[1];
     char * serverPortNum= argv[2];
-    char proto[4];
     //char * proto = "ftp";
-    char fileName[10];
+    char inputPre[100];
 
     if (argc != 3) {
         fprintf(stderr,"usage: deliver ServerAddress ServerPortNumber\n");
@@ -36,15 +35,23 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
     }
     
     
-    //Next input should be "ftp Gottem.txt" this is assuming you have a Gottem.txt in your directory
-    scanf("%s %s", proto, fileName); //fuck scanf PROTO IS NOT BEING POPULATED
+    fgets(inputPre, sizeof(inputPre), stdin);
+    char * inputPost = strtok(inputPre, "\n");
+    char * proto = strtok(inputPost, " ");
+    if (proto == NULL){
+        exit(1);
+    }
+    char * fileName = strtok(NULL, " ");
+    // printf("The proto length is %d\n", strlen(proto));
+    // printf("The fileName length is %d\n", strlen(fileName));
+    
+    // puts (proto);
+    // puts(fileName);
 
-    //TODO: Check existence of fileName
-    puts ( proto )
-    puts( fileName );
     if (access(fileName, F_OK) != 0){
         exit(1);
     }
+
 
     // struct Packet packet;
     // packet.frag_no = 1;
