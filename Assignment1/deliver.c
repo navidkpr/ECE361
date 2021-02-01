@@ -10,7 +10,6 @@
 #include <time.h>
 #include <math.h>
 
-#define SERVERPORT "3470"
 
 struct Packet {
     unsigned int total_frag;

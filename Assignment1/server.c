@@ -8,11 +8,15 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#define MYPORT "3470"  // the port users will be connecting to
 #define BACKLOG 10 
-#define MYHOST NULL
+#define MYHOST "ug136"
 
-int main() {
+int main( int argc, char *argv[] ) {
+    if (argc != 2){
+        fprintf(stderr,"usage: server ServerPortNumber\n");
+        exit(1);
+    }
+    char * serverPortNum = argv[1];
     struct sockaddr_storage client_addr;
     
     socklen_t addr_size;
@@ -25,7 +29,7 @@ int main() {
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_PASSIVE;
 
-    getaddrinfo(MYHOST, MYPORT, &hints, &res);
+    getaddrinfo(MYHOST, serverPortNum, &hints, &res);
 
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if(sockfd < 0){
