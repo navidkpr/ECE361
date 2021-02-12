@@ -11,6 +11,69 @@
 #define BACKLOG 10 
 #define MYHOST "ug136"
 
+void create_file_from_packet(char *str) {
+    // char *str = "32:2:10:foobar.txt:lo World!\n";
+    
+    int total_frag = 0;
+    int frag_no = 0;
+    int packet_size = 0;
+
+    int pt = 0;
+    while (str[pt] != ':') {
+        total_frag = total_frag * 10 + str[pt] - '0';
+        pt++;
+    }
+
+    pt++;
+    while (str[pt] != ':') {
+        frag_no = frag_no * 10 + str[pt] - '0';
+        pt++;
+    }
+
+    pt++;
+    while (str[pt] != ':') {
+        packet_size = packet_size * 10 + str[pt] - '0';
+        pt++;
+    }
+
+    pt++;
+    int st_pt = pt;
+    while (str[pt] != ':')
+        pt++;
+
+
+    char *file_name = malloc( sizeof(char) * ( pt - st_pt + 1 ) );
+    memcpy (file_name, &str[st_pt], pt - st_pt);
+    file_name[pt - st_pt] = '\0';
+    
+
+
+
+
+    pt++;
+    st_pt = pt;
+    
+    char *content = malloc( sizeof(char) * ( packet_size + 1 ) );
+    memcpy (content, &str[st_pt], packet_size);
+    content[packet_size] = '\0';
+
+    printf("%d %d %d\n", total_frag, frag_no, packet_size);
+    puts(file_name);
+    puts(content);
+
+    FILE * fPtr;
+    
+    if (frag_no == 1)
+        fPtr = fopen(file_name, "w");
+    else
+        fPtr = fopen(file_name, "a");
+
+    fputs(content, fPtr);
+
+    if (frag_no == total_frag)
+        fclose(fPtr);
+}
+
 int main( int argc, char *argv[] ) {
     if (argc != 2){
         fprintf(stderr,"usage: server ServerPortNumber\n");
@@ -44,24 +107,31 @@ int main( int argc, char *argv[] ) {
     }
 
     printf("Done with binding\n");
-
+//
 
     printf("Listening for incoming messages...\n\n");
 
 
     addr_size = sizeof client_addr;
-    char client_message[1000];
-    if ((recieveNumBytes = recvfrom(sockfd, client_message, sizeof(client_message), 0, (struct sockaddr*)&client_addr, &addr_size)) < 0) {
+    char packet[1000];
+    if ((recieveNumBytes = recvfrom(sockfd, packet, sizeof(packet), 0, (struct sockaddr*)&client_addr, &addr_size)) < 0) {
         printf("Recieve Error\n");
         return -1;
     }
-    printf("Msg from client: %s\n", client_message);
-    client_message[recieveNumBytes] = '\0';
+
+
+    printf("Packet is: %s\n", packet);
+    create_file_from_packet(packet);
+
     char *response;
-    if (strcmp(client_message, "ftp") == 0)
-        response = "yes";
-    else
-        response = "no";
+
+    // if (strcmp(packet, "ftp") == 0)
+    //     response = "yes";
+    // else
+    //     response = "no";
+
+    if packet is an actual segment of the file:
+     response = "ACK"; 
 
     
     
