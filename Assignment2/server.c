@@ -15,6 +15,8 @@ FILE * fPtr;
 
 int create_file_from_packet(char *str) {
     // char *str = "32:2:10:foobar.txt:lo World!\n";
+
+    //puts( str );
     
     int total_frag = 0;
     int frag_no = 0;
@@ -122,7 +124,7 @@ int main( int argc, char *argv[] ) {
 
     while (!isDone) {
         addr_size = sizeof client_addr;
-        char packet[1000];
+        char packet[1050];
         if ((recieveNumBytes = recvfrom(sockfd, packet, sizeof(packet), 0, (struct sockaddr*)&client_addr, &addr_size)) < 0) {
             printf("Recieve Error\n");
             return -1;
