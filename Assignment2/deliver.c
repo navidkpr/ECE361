@@ -118,6 +118,7 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         strcat(packetString, ":");
         int packetHeaderLen = strlen(packetString);
         memcpy(packetString + strlen(packetString), packet.filedata, packet.size);
+        packetString[strlen(packetString)] = '\0';
         puts (packetString);
         if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
             servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
