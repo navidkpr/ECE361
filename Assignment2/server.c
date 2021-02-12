@@ -73,9 +73,8 @@ int create_file_from_packet(char *str) {
     fputs(content, fPtr);
 
     
-    fclose(fPtr);
-
     if (frag_no == total_frag)
+        fclose(fPtr);
         return 1;
     
     return 0;
