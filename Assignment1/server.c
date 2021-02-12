@@ -44,7 +44,7 @@ int main( int argc, char *argv[] ) {
     }
 
     printf("Done with binding\n");
-
+//
 
     printf("Listening for incoming messages...\n\n");
 
