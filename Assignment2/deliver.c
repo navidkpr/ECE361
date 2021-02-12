@@ -102,12 +102,13 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
             packet.size = 1000;
         }
         else{
-            packet.size = filelen;
+            packet.size = (unsigned int)filelen;
         }
         filelen -= 1000;
         fread(packet.filedata,packet.size,1,fileptr); //fread increments fileptr
 
         char packetString[1024];
+
         sprintf(packetString, "%u", packet.total_frag);
         strcat(packetString, ":");
         sprintf(packetString + strlen(packetString), "%u", packet.frag_no);
@@ -117,7 +118,8 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         sprintf(packetString + strlen(packetString), "%s",packet.filename);
         strcat(packetString, ":");
         int packetHeaderLen = strlen(packetString);
-        memcpy(packetString + strlen(packetString), packet.filedata, packet.size);
+        memcpy(packetString + strlen(packetString), packet.filedata, packet.size); //clear packet string
+
         puts (packetString);
         if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
             servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
