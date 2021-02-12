@@ -96,6 +96,7 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
     printf("Socket created successfully\n");
 
     int x;
+    char packetString[1024];
     for (x = 1; x <= packet.total_frag; x++){
         packet.frag_no = (unsigned int)x;
         if (filelen > 1000){
@@ -107,7 +108,8 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         filelen -= 1000;
         fread(packet.filedata,packet.size,1,fileptr); //fread increments fileptr
 
-        char packetString[1024];
+        //strcpy(packetString, "");
+        memset(packetString,0,sizeof(packetString));
 
         sprintf(packetString, "%u", packet.total_frag);
         strcat(packetString, ":");
@@ -119,7 +121,7 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         strcat(packetString, ":");
         int packetHeaderLen = strlen(packetString);
         memcpy(packetString + strlen(packetString), packet.filedata, packet.size);
-        packetString[strlen(packetString)] = '\0';
+        //packetString[packetHeaderLen + packet.size] = '\0';
         puts (packetString);
         if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
             servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
@@ -132,7 +134,8 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         buffer[recieveNumBytes] = '\0';
         if (strcmp(buffer, "ACK") == 0){
             printf("Navid is Gae\n");
-        } 
+        }
+
     }
     
     
