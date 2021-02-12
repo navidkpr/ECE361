@@ -112,33 +112,35 @@ int main( int argc, char *argv[] ) {
     printf("Listening for incoming messages...\n\n");
 
 
-    addr_size = sizeof client_addr;
-    char packet[1000];
-    if ((recieveNumBytes = recvfrom(sockfd, packet, sizeof(packet), 0, (struct sockaddr*)&client_addr, &addr_size)) < 0) {
-        printf("Recieve Error\n");
-        return -1;
-    }
+    while (true) {
+        addr_size = sizeof client_addr;
+        char packet[1000];
+        if ((recieveNumBytes = recvfrom(sockfd, packet, sizeof(packet), 0, (struct sockaddr*)&client_addr, &addr_size)) < 0) {
+            printf("Recieve Error\n");
+            return -1;
+        }
 
 
-    printf("Packet is: %s\n", packet);
-    create_file_from_packet(packet);
+        printf("Packet is: %s\n", packet);
+        create_file_from_packet(packet);
 
-    char *response;
+        char *response;
 
-    // if (strcmp(packet, "ftp") == 0)
-    //     response = "yes";
-    // else
-    //     response = "no";
+        // if (strcmp(packet, "ftp") == 0)
+        //     response = "yes";
+        // else
+        //     response = "no";
 
-    if packet is an actual segment of the file:
-     response = "ACK"; 
+        if packet is an actual segment of the file:
+        response = "ACK"; 
 
-    
-    
-    if (sendto(sockfd, response, strlen(response), 0,
-        (struct sockaddr*)&client_addr, addr_size) < 0){
-        printf("Reesponse Error\n");
-        return -1;
+        
+        
+        if (sendto(sockfd, response, strlen(response), 0,
+            (struct sockaddr*)&client_addr, addr_size) < 0){
+            printf("Reesponse Error\n");
+            return -1;
+        }
     }
 
     close(sockfd);
