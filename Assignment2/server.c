@@ -11,6 +11,8 @@
 #define BACKLOG 10 
 #define MYHOST "ug136"
 
+FILE * fPtr;
+
 int create_file_from_packet(char *str) {
     // char *str = "32:2:10:foobar.txt:lo World!\n";
     
@@ -61,12 +63,12 @@ int create_file_from_packet(char *str) {
     puts(file_name);
     puts(content);
 
-    FILE * fPtr;
+
     
     if (frag_no == 1)
         fPtr = fopen(file_name, "w");
-    else
-        fPtr = fopen(file_name, "a");
+    // else
+    //     fPtr = fopen(file_name, "a");
 
     fputs(content, fPtr);
 
