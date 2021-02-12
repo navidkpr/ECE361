@@ -59,4 +59,22 @@ int main() {
     puts(file_name);
     puts(content);
 
+    FILE * fPtr;
+
+
+    /* 
+     * Open file in w (write) mode. 
+     * "data/file1.txt" is complete path to create file
+     */
+    
+    if (frag_no == 1)
+        fPtr = fopen(file_name, "w");
+    else
+        fPtr = fopen(file_name, "a");
+
+    fputs(content, fPtr);
+
+    if (frag_no == total_frag)
+        fclose(fPtr);
+
 }
