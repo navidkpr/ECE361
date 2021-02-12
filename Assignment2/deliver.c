@@ -102,12 +102,13 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
             packet.size = 1000;
         }
         else{
-            packet.size = filelen;
+            packet.size = (unsigned int)filelen;
         }
         filelen -= 1000;
         fread(packet.filedata,packet.size,1,fileptr); //fread increments fileptr
 
         char packetString[1024];
+
         sprintf(packetString, "%u", packet.total_frag);
         strcat(packetString, ":");
         sprintf(packetString + strlen(packetString), "%u", packet.frag_no);
