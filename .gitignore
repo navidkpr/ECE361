@@ -1,4 +1,5 @@
 *.txt
+*.tar.gz
 
 # Prerequisites
 *.d
