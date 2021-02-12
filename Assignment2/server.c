@@ -11,7 +11,7 @@
 #define BACKLOG 10 
 #define MYHOST "ug136"
 
-void create_file_from_packet(char *str) {
+int create_file_from_packet(char *str) {
     // char *str = "32:2:10:foobar.txt:lo World!\n";
     
     int total_frag = 0;
@@ -70,8 +70,13 @@ void create_file_from_packet(char *str) {
 
     fputs(content, fPtr);
 
+    
+    fclose(fPtr);
+
     if (frag_no == total_frag)
-        fclose(fPtr);
+        return 1;
+    
+    return 0;
 }
 
 int main( int argc, char *argv[] ) {
@@ -107,12 +112,12 @@ int main( int argc, char *argv[] ) {
     }
 
     printf("Done with binding\n");
-//
 
     printf("Listening for incoming messages...\n\n");
 
+    int isDone = 0;
 
-    while (true) {
+    while (!isDone) {
         addr_size = sizeof client_addr;
         char packet[1000];
         if ((recieveNumBytes = recvfrom(sockfd, packet, sizeof(packet), 0, (struct sockaddr*)&client_addr, &addr_size)) < 0) {
@@ -122,16 +127,11 @@ int main( int argc, char *argv[] ) {
 
 
         printf("Packet is: %s\n", packet);
-        create_file_from_packet(packet);
+        isDone = create_file_from_packet(packet);
 
         char *response;
 
-        // if (strcmp(packet, "ftp") == 0)
-        //     response = "yes";
-        // else
-        //     response = "no";
-
-        if packet is an actual segment of the file:
+        //if packet is an actual segment of the file:
         response = "ACK"; 
 
         
