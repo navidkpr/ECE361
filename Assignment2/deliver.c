@@ -108,13 +108,13 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         filelen -= 1000;
         fread(packet.filedata, 1, packet.size,fileptr); //fread increments fileptr
         // printf("%x, %s \n", packet.filedata, packet.filedata);
-        for (int i = 0; i < packet.size; i++) {
-            printf("%x", packet.filedata[i]);
-            if (i % 4 == 0)
-                printf(' ');
-            else if (i % 16 == 0)
-                printf('\n');
-        }
+        // for (int i = 0; i < packet.size; i++) {
+        //     printf("%x", packet.filedata[i]);
+        //     if (i % 4 == 0)
+        //         printf(" ");
+        //     else if (i % 16 == 0)
+        //         printf("\n");
+        // }
 
         //strcpy(packetString, "");
         memset(packetString,0,sizeof(packetString));
@@ -143,7 +143,7 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         if (strcmp(buffer, "ACK") == 0){
             printf("Navid is Gae\n");
         }
-        break; ///////////////////////////////////REMOVE DIS
+        //break; ///////////////////////////////////REMOVE DIS
     }
     
     

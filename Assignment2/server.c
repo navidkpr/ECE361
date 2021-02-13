@@ -72,7 +72,10 @@ int create_file_from_packet(char *str) {
     // else
     //     fPtr = fopen(file_name, "a");
 
-    fputs(content, fPtr);
+    if(strstr(file_name, ".txt") != NULL)
+        fputs(content, fPtr);
+    else
+        fwrite(content, 1, packet_size, fPtr);
 
     
     if (frag_no == total_frag){
