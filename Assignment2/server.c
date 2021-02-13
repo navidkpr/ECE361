@@ -14,9 +14,6 @@
 FILE * fPtr;
 
 int create_file_from_packet(char *str) {
-    // char *str = "32:2:10:foobar.txt:lo World!\n";
-
-    //puts( str );
     
     int total_frag = 0;
     int frag_no = 0;
@@ -62,15 +59,13 @@ int create_file_from_packet(char *str) {
     content[packet_size] = '\0';
 
     printf("%d %d %d\n", total_frag, frag_no, packet_size);
-    puts(file_name);
-    puts(content);
+    //puts(file_name);
+    //puts(content);
 
 
     
     if (frag_no == 1)
         fPtr = fopen(file_name, "w");
-    // else
-    //     fPtr = fopen(file_name, "a");
 
     if(strstr(file_name, ".txt") != NULL)
         fputs(content, fPtr);
@@ -149,7 +144,6 @@ int main( int argc, char *argv[] ) {
             printf("Reesponse Error\n");
             return -1;
         }
-        //break; //////////////////////////////////////////REMOVE DIS
     }
 
     close(sockfd);

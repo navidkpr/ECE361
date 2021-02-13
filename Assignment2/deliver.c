@@ -41,11 +41,6 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         exit(1);
     }
     char * fileName = strtok(NULL, " ");
-    // printf("The proto length is %d\n", strlen(proto));
-    // printf("The fileName length is %d\n", strlen(fileName));
-    
-    // puts (proto);
-    // puts(fileName);
 
     if (access(fileName, F_OK) != 0){
         exit(1);
@@ -107,16 +102,6 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         }
         filelen -= 1000;
         fread(packet.filedata, 1, packet.size,fileptr); //fread increments fileptr
-        // printf("%x, %s \n", packet.filedata, packet.filedata);
-        // for (int i = 0; i < packet.size; i++) {
-        //     printf("%x", packet.filedata[i]);
-        //     if (i % 4 == 0)
-        //         printf(" ");
-        //     else if (i % 16 == 0)
-        //         printf("\n");
-        // }
-
-        //strcpy(packetString, "");
         memset(packetString,0,sizeof(packetString));
 
         sprintf(packetString, "%u", packet.total_frag);
@@ -129,8 +114,7 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         strcat(packetString, ":");
         int packetHeaderLen = strlen(packetString);
         memcpy(packetString + strlen(packetString), packet.filedata, packet.size);
-        //packetString[packetHeaderLen + packet.size] = '\0';
-        //puts (packetString);
+        start = clock();
         if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
             servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
             perror("deliver: sendto");
@@ -139,38 +123,18 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         recieveNumBytes = recvfrom(sockfd, (char *)buffer, 1000,  
                     0, servinfo->ai_addr, 
                     &servinfo->ai_addrlen);
+        end = clock();
+        cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+        printf("RTT IS %f seconds\n", cpu_time_used);
         buffer[recieveNumBytes] = '\0';
         if (strcmp(buffer, "ACK") == 0){
-            printf("Navid is Gae\n");
+            printf("ACK received\n");
         }
-        //break; ///////////////////////////////////REMOVE DIS
     }
     
     
-    
-    // start = clock();
-    // if ((sendNumBytes = sendto(sockfd, proto, strlen(proto), 0,
-    //     servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
-    //     perror("deliver: sendto");
-    //     exit(1);
-    // }
-
-    // recieveNumBytes = recvfrom(sockfd, (char *)buffer, 1000,  
-    //             0, servinfo->ai_addr, 
-    //             &servinfo->ai_addrlen);
-    // end = clock();
-    // cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    // printf("RTT IS %f seconds\n", cpu_time_used);
-    // buffer[recieveNumBytes] = '\0';
-    // if (strcmp(buffer, "yes") == 0){
-    //     printf("A file transfer can start\n");
-    // } 
-
-
-    //printf("Server : %s\n", buffer);
 
     freeaddrinfo(servinfo);
-    //printf("deliver: sent %d bytes to server\n", sendNumBytes);
     close(sockfd);
     fclose(fileptr);
     return 0;
