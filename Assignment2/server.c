@@ -46,7 +46,7 @@ int create_file_from_packet(char *str) {
         pt++;
 
 
-    char *file_name = malloc( sizeof(char) * ( pt - st_pt + 1 ) );
+    char file_name[sizeof(char) * ( pt - st_pt + 1 )];
     memcpy (file_name, &str[st_pt], pt - st_pt);
     file_name[pt - st_pt] = '\0';
     
@@ -57,7 +57,7 @@ int create_file_from_packet(char *str) {
     pt++;
     st_pt = pt;
     
-    char *content = malloc( sizeof(char) * ( packet_size + 1 ) );
+    char content[sizeof(char) * ( packet_size + 1)];
     memcpy (content, &str[st_pt], packet_size);
     content[packet_size] = '\0';
 
@@ -146,6 +146,7 @@ int main( int argc, char *argv[] ) {
             printf("Reesponse Error\n");
             return -1;
         }
+        //break; //////////////////////////////////////////REMOVE DIS
     }
 
     close(sockfd);

@@ -106,7 +106,8 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
             packet.size = (unsigned int)filelen;
         }
         filelen -= 1000;
-        fread(packet.filedata,packet.size,1,fileptr); //fread increments fileptr
+        fread(packet.filedata, 1, packet.size,fileptr); //fread increments fileptr
+        printf("%x, %s \n", packet.filedata, packet.filedata);
 
         //strcpy(packetString, "");
         memset(packetString,0,sizeof(packetString));
@@ -121,8 +122,8 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         strcat(packetString, ":");
         int packetHeaderLen = strlen(packetString);
         memcpy(packetString + strlen(packetString), packet.filedata, packet.size);
-        packetString[packetHeaderLen + packet.size] = '\0';
-        puts (packetString);
+        //packetString[packetHeaderLen + packet.size] = '\0';
+        //puts (packetString);
         if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
             servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
             perror("deliver: sendto");
@@ -135,7 +136,7 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         if (strcmp(buffer, "ACK") == 0){
             printf("Navid is Gae\n");
         }
-
+        //break; ///////////////////////////////////REMOVE DIS
     }
     
     
@@ -164,6 +165,6 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
     freeaddrinfo(servinfo);
     //printf("deliver: sent %d bytes to server\n", sendNumBytes);
     close(sockfd);
-
+    fclose(fileptr);
     return 0;
 }
