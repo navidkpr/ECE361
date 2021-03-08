@@ -19,6 +19,27 @@ struct Packet {
     char filedata[1000];
 };
 
+int recvtimeout(int s, char *buf, int len, struct addrinfo * servinfo, int timeout)
+{
+    fd_set fds;
+    int n;
+    struct timeval tv;
+    // set up the file descriptor set
+    FD_ZERO(&fds);
+    FD_SET(s, &fds);
+    // set up the struct timeval for the timeout
+    tv.tv_sec = 0;
+    tv.tv_usec = timeout;
+    // wait until timeout or data received
+    n = select(s+1, &fds, NULL, NULL, &tv);
+    if (n == 0) return -2; // timeout!
+    if (n == -1) return -1; // error
+    // data must be here, so do a normal recv()
+    return recvfrom(s, (char *)buf, len,  
+                    0, servinfo->ai_addr, 
+                    &servinfo->ai_addrlen);
+}
+
 int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
 {
     clock_t start, end;
@@ -90,8 +111,10 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
     }
     printf("Socket created successfully\n");
 
-    int x;
+    int x, timeOut, resend, timeOutTime, devRTT, estimatedRTT;
+    int G = 1000;
     char packetString[1024];
+    timeOutTime = 10000;
     for (x = 1; x <= packet.total_frag; x++){
         packet.frag_no = (unsigned int)x;
         if (filelen > 1000){
@@ -117,14 +140,45 @@ int main( int argc, char *argv[] ) //Run program with deliver.o LocalHost 3470
         start = clock();
         if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
             servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
-            perror("deliver: sendto");
+            perror("deliver: sendto1");
             exit(1);
         }
-        recieveNumBytes = recvfrom(sockfd, (char *)buffer, 1000,  
-                    0, servinfo->ai_addr, 
-                    &servinfo->ai_addrlen);
+        resend = 0;
+        do { 
+            timeOut = recvtimeout(sockfd, buffer, 1000, servinfo, timeOutTime);
+            if (timeOut == -2){
+                if (resend == 3){
+                    perror("TIMEOUT");
+                    exit(1);
+                }
+                if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
+                    servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
+                    perror("deliver: sendto2");
+                    exit(1);
+                }
+                puts("Attempting to resend");
+                resend ++;
+                
+            }
+            else if (timeOut == -1){
+                perror("recev: fram");
+                exit(1);
+            }
+        }while(timeOut == -2);
+        resend = 0;
         end = clock();
         cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+        if (x == 1){
+            estimatedRTT = cpu_time_used * 1000000;
+            devRTT = cpu_time_used*1000000/2;
+            timeOutTime = estimatedRTT + fmax(4*devRTT, G);
+        }
+        else{
+            estimatedRTT = (int)((1-0.125)*estimatedRTT + 0.125*(cpu_time_used * 1000000));
+            devRTT = (int)(0.75*devRTT + 0.25*abs(cpu_time_used * 1000000 - estimatedRTT));
+            timeOutTime = estimatedRTT + fmax(4*devRTT, G);
+        }
+
         printf("RTT IS %f seconds\n", cpu_time_used);
         buffer[recieveNumBytes] = '\0';
         if (strcmp(buffer, "ACK") == 0){
