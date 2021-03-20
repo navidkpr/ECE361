@@ -62,170 +62,194 @@ int checkCommand(char * command){
     }
 }
 
-void commandAction(int command, char * theRest){
 
+//return 0 on success
+int messagePopulate(int command,char * theFirst, char * theRest, struct Message * message){
+    int dataLen = 0;
+    if(command == LOGIN){
+        message->type = LOGIN;
+        char * cID = strtok(NULL, " ");
+        char * pass = strtok(NULL, " ");
+        char * servIP = strtok(NULL, " ");
+        char * servPort = strtok(NULL, " ");
+        if (cID == NULL || pass == NULL || servIP == NULL || servPort == NULL){
+            return 1;
+        }
+        message->source = cID;
 
-    if (command == -1){
 
     }
+    else if(command == EXIT){
+        message->type = EXIT;
 
+    }
+    else if(command == JOIN){
+        message->type = JOIN;
+
+    }
+    else if(command == NEW_SESS){
+        message->type = NEW_SESS;
+
+    }
+    else if(command == LEAVE_SESS){
+        message->type = LEAVE_SESS;
+
+    }
+    else if(command == QUERY){
+        message->type = QUERY;
+        message->size
+
+    }
+    else if(command == -1){
+        message->type = -1;
+    }
+    else{
+        message->type = MESSAGE;
+        dataLen += sprintf(message->data, theFirst);
+        dataLen += sprintf(message->data, " ");
+        dataLen += sprintf(message->data, theRest);
+        message->size = dataLen; //excluding NULL character
+    }
+
+    return 0;
 }
 
 int main( int argc, char *argv[] )
 {
-    clock_t start, end;
-    double cpu_time_used;
+    // clock_t start, end;
+    // double cpu_time_used;
     char * serverAddress;
     char * serverPortNum;
-    char inputPre[500];
-    struct Message message;
+    
 
     int quit = 0;
     
     while(!quit){
+        int err;
+        struct Message * message;
+        char inputPre[500];
+
         fgets(inputPre, sizeof(inputPre), stdin);
         char * inputPost = strtok(inputPre, "\n");
         char * firstWord = strtok(inputPost, " ");
+
         int command = checkCommand(firstWord);
-        commandAction(clock)
+        err = messagePopulate(command, firstWord, inputPost, message);
+
+
+        int sockfd;
+        struct addrinfo hints, *servinfo;
+        int rv;
+        int sendNumBytes;
+        int recieveNumBytes;
+        char buffer[1000];
+
+        memset(&hints, 0, sizeof hints);
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_flags = AI_PASSIVE;
 
         
-        if (command == NULL){
+
+        //-----------------------------------------------------------------------------------------------------------
+
+
+        if ((rv = getaddrinfo(serverAddress, serverPortNum, &hints, &servinfo)) != 0) {
+            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+            return 1;
+        }
+        
+        sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+        if(sockfd < 0){
+            printf("Error while creating socket\n");
+            return -1;
+        }
+        printf("Socket created successfully\n");
+
+        int x;
+        //, timeOut, resend, timeOutTime, devRTT, estimatedRTT
+        // timeOutTime = 10000;
+        // for (x = 1; x <= packet.total_frag; x++){
+        //     packet.frag_no = (unsigned int)x;
+        //     if (filelen > 1000){
+        //         packet.size = 1000;
+        //     }
+        //     else{
+        //         packet.size = (unsigned int)filelen;
+        //     }
+        //     filelen -= 1000;
+        //     fread(packet.filedata, 1, packet.size,fileptr); //fread increments fileptr
+        //     memset(packetString,0,sizeof(packetString));
+
+        //     sprintf(packetString, "%u", packet.total_frag);
+        //     strcat(packetString, ":");
+        //     sprintf(packetString + strlen(packetString), "%u", packet.frag_no);
+        //     strcat(packetString, ":");
+        //     sprintf(packetString + strlen(packetString), "%u",packet.size);
+        //     strcat(packetString, ":");
+        //     sprintf(packetString + strlen(packetString), "%s",packet.filename);
+        //     strcat(packetString, ":");
+        //     int packetHeaderLen = strlen(packetString);
+        //     memcpy(packetString + strlen(packetString), packet.filedata, packet.size);
+        //     start = clock();
+        //     if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
+        //         servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
+        //         perror("deliver: sendto1");
+        //         exit(1);
+        //     }
+        //     resend = 0;
+        //     do { 
+        //         timeOut = recvtimeout(sockfd, buffer, 1000, servinfo, timeOutTime);
+        //         if (timeOut == -2){
+        //             if (resend == 3){
+        //                 perror("TIMEOUT");
+        //                 exit(1);
+        //             }
+        //             if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
+        //                 servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
+        //                 perror("deliver: sendto2");
+        //                 exit(1);
+        //             }
+        //             puts("Attempting to resend");
+        //             resend ++;
+                    
+        //         }
+        //         else if (timeOut == -1){
+        //             perror("recev: fram");
+        //             exit(1);
+        //         }
+        //     }while(timeOut == -2);
+        //     resend = 0;
+        //     end = clock();
+        //     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+        //     if (x == 1){
+        //         estimatedRTT = cpu_time_used * 1000000;
+        //         devRTT = cpu_time_used*1000000/2;
+        //         timeOutTime = estimatedRTT + fmax(4*devRTT, G);
+        //     }
+        //     else{
+        //         estimatedRTT = (int)((1-0.125)*estimatedRTT + 0.125*(cpu_time_used * 1000000));
+        //         devRTT = (int)(0.75*devRTT + 0.25*abs(cpu_time_used * 1000000 - estimatedRTT));
+        //         timeOutTime = estimatedRTT + fmax(4*devRTT, G);
+        //     }
+
+            
+        // }
+
+        if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
+            servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
+            perror("deliver: sendto1");
             exit(1);
         }
 
+        buffer[recieveNumBytes] = '\0';
+        if (strcmp(buffer, "ACK") == 0){
+            printf("ACK received\n");
+        }
+    
     }
-    
-    char * fileName = strtok(NULL, " ");
-
-
-
-
-    FILE *fileptr;
-    long filelen;
-    fileptr = fopen(packet.filename,"rb");
-    fseek(fileptr, 0, SEEK_END);
-    filelen = ftell(fileptr);
-    rewind(fileptr);
-    
-
-
-    int sockfd;
-    struct addrinfo hints, *servinfo;
-    int rv;
-    int sendNumBytes;
-    int recieveNumBytes;
-    char buffer[1000];
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
-
-    
-
-    //-----------------------------------------------------------------------------------------------------------
-
-
-    if ((rv = getaddrinfo(serverAddress, serverPortNum, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
-    }
-    
-    sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
-    if(sockfd < 0){
-        printf("Error while creating socket\n");
-        return -1;
-    }
-    printf("Socket created successfully\n");
-
-    int x;
-    //, timeOut, resend, timeOutTime, devRTT, estimatedRTT
-    int G = 1000;
-    char packetString[1024];
-    // timeOutTime = 10000;
-    // for (x = 1; x <= packet.total_frag; x++){
-    //     packet.frag_no = (unsigned int)x;
-    //     if (filelen > 1000){
-    //         packet.size = 1000;
-    //     }
-    //     else{
-    //         packet.size = (unsigned int)filelen;
-    //     }
-    //     filelen -= 1000;
-    //     fread(packet.filedata, 1, packet.size,fileptr); //fread increments fileptr
-    //     memset(packetString,0,sizeof(packetString));
-
-    //     sprintf(packetString, "%u", packet.total_frag);
-    //     strcat(packetString, ":");
-    //     sprintf(packetString + strlen(packetString), "%u", packet.frag_no);
-    //     strcat(packetString, ":");
-    //     sprintf(packetString + strlen(packetString), "%u",packet.size);
-    //     strcat(packetString, ":");
-    //     sprintf(packetString + strlen(packetString), "%s",packet.filename);
-    //     strcat(packetString, ":");
-    //     int packetHeaderLen = strlen(packetString);
-    //     memcpy(packetString + strlen(packetString), packet.filedata, packet.size);
-    //     start = clock();
-    //     if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
-    //         servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
-    //         perror("deliver: sendto1");
-    //         exit(1);
-    //     }
-    //     resend = 0;
-    //     do { 
-    //         timeOut = recvtimeout(sockfd, buffer, 1000, servinfo, timeOutTime);
-    //         if (timeOut == -2){
-    //             if (resend == 3){
-    //                 perror("TIMEOUT");
-    //                 exit(1);
-    //             }
-    //             if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
-    //                 servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
-    //                 perror("deliver: sendto2");
-    //                 exit(1);
-    //             }
-    //             puts("Attempting to resend");
-    //             resend ++;
-                
-    //         }
-    //         else if (timeOut == -1){
-    //             perror("recev: fram");
-    //             exit(1);
-    //         }
-    //     }while(timeOut == -2);
-    //     resend = 0;
-    //     end = clock();
-    //     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    //     if (x == 1){
-    //         estimatedRTT = cpu_time_used * 1000000;
-    //         devRTT = cpu_time_used*1000000/2;
-    //         timeOutTime = estimatedRTT + fmax(4*devRTT, G);
-    //     }
-    //     else{
-    //         estimatedRTT = (int)((1-0.125)*estimatedRTT + 0.125*(cpu_time_used * 1000000));
-    //         devRTT = (int)(0.75*devRTT + 0.25*abs(cpu_time_used * 1000000 - estimatedRTT));
-    //         timeOutTime = estimatedRTT + fmax(4*devRTT, G);
-    //     }
-
-        
-    // }
-
-    if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
-        servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
-        perror("deliver: sendto1");
-        exit(1);
-    }
-
-    buffer[recieveNumBytes] = '\0';
-    if (strcmp(buffer, "ACK") == 0){
-        printf("ACK received\n");
-    }
-    
-    
 
     freeaddrinfo(servinfo);
     close(sockfd);
-    fclose(fileptr);
     return 0;
 }
