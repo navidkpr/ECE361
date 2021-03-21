@@ -18,12 +18,14 @@
 
 struct Session {
     char *id;
+    struct Session *next;
 }; 
 
 FILE * fPtr;
 const char* users[] = {"Nathan", "Robert", "Navid", "YourMom", "Hamid"};
 const char* pwds[] = {"red", "orange", "yellow", "green", "blue"};
 struct Session *sessions[NUM_USERS] = {NULL, NULL, NULL, NULL};
+struct Session *head = NULL;
 int is_active[] = {1, 1, 1, 1, 1};
 
 void parse_message(char *str, struct Message* msg) {
@@ -98,10 +100,22 @@ void command_handler(struct Message* msg, int client_fd){
             }
         close(client_fd);
     }else if(type == JOIN){
-        char *data = msg->data;
+        char *session_id = msg->data;
+        struct Session *cur = head;
+        int isFound = 0;
+        while (cur != NULL) {
+            if (strcmp(session_id, cur->id) == 0) {
+                sprintf(ack_msg, "Joined session %s\n", session_id);
+                send(client_fd, ack_msg, strlen(ack_msg), 0);
+                isFound = 1;
+            }
+            cur = cur->next;
+        }
+        if (!isFound) {
+            sprintf(ack_msg, "Session %s not found\n", session_id);
+            send(client_fd, ack_msg, strlen(ack_msg), 0);
+        }
 
-        //add socket to session data structure
-        ;
     }else if(type == LEAVE_SESS){
         char *client_id = msg->source;
         for (i = 0; i < NUM_USERS; i++)
@@ -111,6 +125,21 @@ void command_handler(struct Message* msg, int client_fd){
         //remove socket from session data structure
         ;
     }else if(type == NEW_SESS){
+        char *session_id = msg->data;
+
+        struct Session *pre = NULL;
+        struct Session *cur = head;
+         
+        while (cur != NULL) {
+            if (strcmp(session_id, cur->id) == 0) {
+                sprintf(ack_msg, "Session %s already exists\n", session_id);
+                send(client_fd, ack_msg, strlen(ack_msg), 0);
+            }
+            pre = cur;
+        }
+        pre->next = malloc(sizeof(struct Session));
+        pre->next->id = session_id;
+        
         //create session data structure 
         //add socket to session data structure
         ;
