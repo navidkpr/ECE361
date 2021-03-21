@@ -216,7 +216,10 @@ int main( int argc, char *argv[] )
             exit(1);
         }
         buffer[recieveNumBytes] = '\0';
-        printf("Received: %s\n", buffer);
+        printf("Received: \n %s", buffer);
+
+        struct Message recvMsg;
+        parse_message(buffer, &recvMsg);
 
         if (strcmp(buffer, "ACK") == 0){
             printf("ACK received\n");
