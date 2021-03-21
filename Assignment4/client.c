@@ -224,7 +224,30 @@ int main( int argc, char *argv[] )
         if (strcmp(buffer, "ACK") == 0){
             printf("ACK received\n");
         }
-    
+
+        else if (strcmp(buffer, "JN_ACK") == 0){
+            printf("Successfully joined session %s\n", recvMsg.data);
+        }
+
+        
+        else if (strcmp(buffer, "NS_ACK") == 0){
+            printf("Successfully created new session %s\n", recvMsg.data);
+        }
+
+        else if (strcmp(buffer, "LO_ACK") == 0){
+            printf("Successfully logged in\n");
+        }
+
+        else if (strcmp(buffer, "LO_NACK") == 0){
+            printf("Fail log in attempt, Reason: %s\n", recvMsg.data);
+        }
+        else if (strcmp(buffer, "QU_ACK") == 0){
+            printf("Curren users and sessions: %s\n", recvMsg.data);
+        }
+        else if (strcmp(buffer, "JN_NACK") == 0){
+            //add
+        }
+
     }
 
     
