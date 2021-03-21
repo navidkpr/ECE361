@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <stdbool.h>
 
 #define BACKLOG 10 
 #define MYHOST "ug137"
@@ -65,36 +66,39 @@ void command_handler(struct Message* msg, int client_fd){
     char* source = "Server";
     bool authorized = false;
     if(type == LOGIN){
-        for(int i = 0; i < len(users); i++){
+        for(int i = 0; i < 5; i++){
             if(strcmp(users[i], msg->source) && strcmp(pwds[i], msg->data)){
                 char* data = " ";
-                sprintf(ack_msg, "%u:%u:%s:%s", LO_ACK, len(data), source, data);
-                send(client_fd, ack_msg, len(ack_msg), 0);
+                sprintf(ack_msg, "%u:%u:%s:%s", LO_ACK, strlen(data), source, data);
+                send(client_fd, ack_msg, strlen(ack_msg), 0);
                 authorized = true;
             }
         }
         if(!authorized){
             char* data = "Incorrect login info didiot";
-            sprintf(ack_msg, "%u:%u:%s:%s", LO_NACK, len(data), source, data);
+            sprintf(ack_msg, "%u:%u:%s:%s", LO_NACK, strlen(data), source, data);
+            send(client_fd, ack_msg, strlen(ack_msg), 0);
         }
     }else if(type == EXIT){
         //remove socket from data structure
         close(client_fd);
     }else if(type == JOIN){
         //add socket to session data structure
+        ;
     }else if(type == LEAVE_SESS){
         //remove socket from session data structure
+        ;
     }else if(type == NEW_SESS){
         //create session data structure 
         //add socket to session data structure
+        ;
     }else if(type == QUERY){
         //send a message of all online users and available sessions
+        ;
     }else if(type == MESSAGE){
         //loop through sockets in specified conference session sending the message
-        send(curr_fd, "%u:%u:%s:%s", MESSAGE, len(msg->data), source, msg->data);
-    }else if(type == QUIT){
-        //remove socket from session data structure
-        close(client_fd);
+        sprintf(ack_msg, "%u:%u:%s:%s", MESSAGE, strlen(msg->data), source, msg->data);
+        send(client_fd, ack_msg, strlen(ack_msg), 0);
     }
 }
 
@@ -149,15 +153,34 @@ int main( int argc, char *argv[] ) {
     int isDone = 0;
     char message_str[MAX_DATA];
     int rec_num_bytes = 0;
+    addr_size = sizeof client_addr;
 
     while (!isDone) {
+        
+        FD_ZERO(&sock_set);
+        FD_SET(sockfd, &sock_set);
+        int max_sd = sockfd;
 
-        addr_size = sizeof client_addr;
-        char packet[1050];
-        new_fd = accept(sockfd, (struct sockaddr *) &client_addr, &addr_size);
-        if (new_fd == -1){
-            printf("Error accepting new connection\n");
+        for(int i = 0; i < 10/*MAX_CLIENTS*/; i++){
+            //sd = socket_fd//whatever the socket data structure is 
+            int sd = 1;
+            if(sd > 0)
+                FD_SET(sd, &sock_set);
+            
+            if(sd > max_sd)
+                max_sd = sd;
+        }
+
+        if(select(max_sd+1, &sock_set, NULL, NULL, NULL) < 0){
+            printf("Error selecting socket\n");
             return -1;
+        }
+
+        if(FD_ISSET(sockfd, &sock_set)){
+            if(new_fd = accept(sockfd, (struct sockaddr *) &client_addr, &addr_size) < 0){
+                printf("Error accepting new connection\n");
+                return -1;
+            }
         }
 
         rec_num_bytes = recv(new_fd, message_str, MAX_DATA-1, 0);
@@ -166,12 +189,8 @@ int main( int argc, char *argv[] ) {
         struct Message* msg;
         msg = parse_message(message_str);
 
+        command_handler(msg, new_fd);
 
-        if(send(new_fd, "Your Mom!", 9, 0) == -1){
-            printf("Error sending message\n");
-            return -1;
-        }
-        break;
     }
 
     close(sockfd);
