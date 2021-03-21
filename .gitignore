@@ -1,5 +1,8 @@
 *.txt
 *.tar.gz
+*.file
+*.pdf
+*.jpg
 
 # Prerequisites
 *.d
