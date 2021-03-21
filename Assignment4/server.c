@@ -133,6 +133,7 @@ void command_handler(struct Message* msg, int client_fd){
         ;
     }else if(type == NEW_SESS){
         char *session_id = msg->data;
+        char *client_id = msg->source;
 
         struct Session *pre = NULL;
         struct Session *cur = head;
@@ -148,10 +149,17 @@ void command_handler(struct Message* msg, int client_fd){
         if (head == NULL){
             head = malloc(sizeof(struct Session));
             head->id = session_id;
+            
+            for (i = 0; i < NUM_USERS; i++)
+                if (strcmp(client_id, users[i]) == 0)
+                    sessions[i] = head;
         }
         else{
             pre->next = malloc(sizeof(struct Session));
             pre->next->id = session_id;
+            for (i = 0; i < NUM_USERS; i++)
+                if (strcmp(client_id, users[i]) == 0)
+                    sessions[i] = pre->next;
         }
 
         
