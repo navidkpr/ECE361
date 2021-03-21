@@ -11,12 +11,20 @@
 
 #define BACKLOG 10 
 #define MYHOST "ug163"
+#define NUM_USERS 5
 
 #include "message.h"
+
+
+struct Session {
+    char *id;
+}; 
 
 FILE * fPtr;
 const char* users[] = {"Nathan, Robert, Navid, YourMom, Hamid"};
 const char* pwds[] = {"red, orange, yellow, green, blue"};
+struct Session *sessions = {NULL, NULL, NULL, NULL};
+int is_active[] = {1, 1, 1, 1, 1}
 
 void parse_message(char *str, struct Message* msg) {
     
@@ -76,12 +84,25 @@ void command_handler(struct Message* msg, int client_fd){
             send(client_fd, ack_msg, strlen(ack_msg), 0);
         }
     }else if(type == EXIT){
-        //remove socket from data structure
+        //remove client socket from data structure
+        char *client_id = msg->source;
+        for (int i = 0; i < NUM_USERS; i++)
+            if (strcmp(users[i], client_id) == 0) {
+                is_active[i] = 0;
+                sessions[i] = NULL;
+            }
         close(client_fd);
     }else if(type == JOIN){
+        char *data = msg->data;
+
         //add socket to session data structure
         ;
     }else if(type == LEAVE_SESS){
+        char *client_id = msg->source;
+        for (i = 0; i < NUM_USERS; i++)
+            if (strcmp(client_id, users[i]) == 0)
+                sessions[i] = NULL;
+        send(client_fd, ack_msg, strlen(ack_msg), 0);
         //remove socket from session data structure
         ;
     }else if(type == NEW_SESS){
@@ -89,10 +110,24 @@ void command_handler(struct Message* msg, int client_fd){
         //add socket to session data structure
         ;
     }else if(type == QUERY){
+        
+        for (i = 0; i < NUM_USERS; i++)
+            if (is_active[i])
+                sprintf(ack_msg, "%s:%s\n", users[i], sessions[i]->id)    
+        send(client_fd, ack_msg, strlen(ack_msg), 0);
         //send a message of all online users and available sessions
         ;
     }else if(type == MESSAGE){
         //loop through sockets in specified conference session sending the message
+        char *client_id = msg->source;
+        struct Session *cur_session = NULL;
+        for (i = 0; i < NUM_USERS; i++)
+            if (is_active[i] && strcmp(users[i], client_id) == 0)
+                cur_session = sessions[i];
+        for (i = 0; i < NUM_USERS; i++)
+            if (is_active[i] && session[i] == cur_session) {
+                //send the message to this client
+            } 
         sprintf(ack_msg, "%u:%u:%s:%s", MESSAGE, strlen(msg->data), source, msg->data);
         send(client_fd, ack_msg, strlen(ack_msg), 0);
     }
