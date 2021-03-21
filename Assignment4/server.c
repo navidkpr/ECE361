@@ -28,44 +28,6 @@ struct Session *sessions[NUM_USERS] = {NULL, NULL, NULL, NULL};
 struct Session *head = NULL;
 int is_active[] = {1, 1, 1, 1, 1};
 
-void parse_message(char *str, struct Message* msg) {
-    
-    int type = 0;
-    int size = 0;
-
-    int pt = 0;
-    while (str[pt] != ':') {
-        type = type * 10 + str[pt] - '0';
-        pt++;
-    }
-    msg->type = type;
-
-    pt++;
-    while (str[pt] != ':') {
-        size = size * 10 + str[pt] - '0';
-        pt++;
-    }
-    msg->size = size;
-
-    pt++;
-    int st_pt = pt;
-    while (str[pt] != ':')
-        pt++;
-
-    char source[sizeof(char) * (pt - st_pt + 1)];
-    memcpy (source, &str[st_pt], pt - st_pt);
-    source[pt - st_pt] = '\0';
-    memcpy(msg->source, source, pt - st_pt + 1);
-
-    pt++;
-    st_pt = pt;
-    
-    char data[sizeof(char) * (size + 1)];
-    memcpy (data, &str[st_pt], size);
-    data[size] = '\0';
-    memcpy(msg->data, data, size + 1);
-}
-
 void command_handler(struct Message* msg, int client_fd){
     int type = msg->type;
     char ack_msg[MAX_OVER_NETWORK];
@@ -132,12 +94,14 @@ void command_handler(struct Message* msg, int client_fd){
         //remove socket from session data structure
         ;
     }else if(type == NEW_SESS){
+        puts("We made it boise\n");
         char *session_id = msg->data;
         char *client_id = msg->source;
 
         struct Session *pre = NULL;
         struct Session *cur = head;
-         
+
+        puts("check - 2\n"); 
         while (cur != NULL) {
             if (strcmp(session_id, cur->id) == 0) {
                 sprintf(ack_msg, "Session %s already exists\n", session_id);
@@ -146,6 +110,7 @@ void command_handler(struct Message* msg, int client_fd){
             pre = cur;
             cur = cur->next;
         }
+        puts("check - 3\n");
         if (head == NULL){
             head = malloc(sizeof(struct Session));
             head->id = session_id;
@@ -162,6 +127,8 @@ void command_handler(struct Message* msg, int client_fd){
                     sessions[i] = pre->next;
         }
 
+        sprintf(ack_msg, "Session %s created\n", session_id);
+        send(client_fd, ack_msg, strlen(ack_msg), 0);
         
         //create session data structure 
         //add socket to session data structure

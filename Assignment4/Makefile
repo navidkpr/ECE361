@@ -1,12 +1,17 @@
-all: server client
+all: message server client
+
+message: message.c
+	gcc -c message.c
 
 server: server.c
-	gcc -g -o server.o server.c
+	gcc -c server.c
+	gcc -g message.o server.o -o server 
 
 client: client.c
-	gcc -g -o client.o client.c -lm
+	gcc -c client.c
+	gcc -g message.o client.o -lm -o client
 
 testPrep: server.o
-	cp server.o ../fileHub
+	cp server ../fileHub
 
 .PHONY: testPrep
