@@ -101,13 +101,20 @@ void command_handler(struct Message* msg, int client_fd){
         close(client_fd);
     }else if(type == JOIN){
         char *session_id = msg->data;
+        char *client_id = msg->source;
+
         struct Session *cur = head;
         int isFound = 0;
         while (cur != NULL) {
             if (strcmp(session_id, cur->id) == 0) {
+                for (i = 0; i < NUM_USERS; i++)
+                    if (strcmp(users[i], client_id) == 0)
+                        sessions[i] = cur;
+
+                isFound = 1;
+
                 sprintf(ack_msg, "Joined session %s\n", session_id);
                 send(client_fd, ack_msg, strlen(ack_msg), 0);
-                isFound = 1;
             }
             cur = cur->next;
         }
