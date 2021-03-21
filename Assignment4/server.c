@@ -14,6 +14,8 @@
 #include "message.h"
 
 FILE * fPtr;
+const char* users[] = {"Nathan, Robert, Navid, YourMom, Hamid"};
+const char* pwds[] = {"red, orange, yellow, green, blue"};
 
 struct Message * parse_message(char *str) {
     
@@ -57,6 +59,45 @@ struct Message * parse_message(char *str) {
     return msg;
 }
 
+void command_handler(struct Message* msg, int client_fd){
+    int type = msg->type;
+    char* ack_msg;
+    char* source = "Server";
+    bool authorized = false;
+    if(type == LOGIN){
+        for(int i = 0; i < len(users); i++){
+            if(strcmp(users[i], msg->source) && strcmp(pwds[i], msg->data)){
+                char* data = " ";
+                sprintf(ack_msg, "%u:%u:%s:%s", LO_ACK, len(data), source, data);
+                send(client_fd, ack_msg, len(ack_msg), 0);
+                authorized = true;
+            }
+        }
+        if(!authorized){
+            char* data = "Incorrect login info didiot";
+            sprintf(ack_msg, "%u:%u:%s:%s", LO_NACK, len(data), source, data);
+        }
+    }else if(type == EXIT){
+        //remove socket from data structure
+        close(client_fd);
+    }else if(type == JOIN){
+        //add socket to session data structure
+    }else if(type == LEAVE_SESS){
+        //remove socket from session data structure
+    }else if(type == NEW_SESS){
+        //create session data structure 
+        //add socket to session data structure
+    }else if(type == QUERY){
+        //send a message of all online users and available sessions
+    }else if(type == MESSAGE){
+        //loop through sockets in specified conference session sending the message
+        send(curr_fd, "%u:%u:%s:%s", MESSAGE, len(msg->data), source, msg->data);
+    }else if(type == QUIT){
+        //remove socket from session data structure
+        close(client_fd);
+    }
+}
+
 int main( int argc, char *argv[] ) {
     if (argc != 2){
         fprintf(stderr,"usage: server ServerPortNumber\n");
@@ -70,6 +111,7 @@ int main( int argc, char *argv[] ) {
     int sockfd, new_fd;
     int recieveNumBytes;
     int yes = 1;
+    fd_set sock_set;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -109,6 +151,7 @@ int main( int argc, char *argv[] ) {
     int rec_num_bytes = 0;
 
     while (!isDone) {
+
         addr_size = sizeof client_addr;
         char packet[1050];
         new_fd = accept(sockfd, (struct sockaddr *) &client_addr, &addr_size);
@@ -122,6 +165,8 @@ int main( int argc, char *argv[] ) {
 
         struct Message* msg;
         msg = parse_message(message_str);
+
+
         if(send(new_fd, "Your Mom!", 9, 0) == -1){
             printf("Error sending message\n");
             return -1;
