@@ -143,13 +143,20 @@ void command_handler(struct Message* msg, int client_fd){
                 send(client_fd, ack_msg, strlen(ack_msg), 0);
             }
             pre = cur;
+            cur = cur->next;
         }
-        pre->next = malloc(sizeof(struct Session));
-        pre->next->id = session_id;
+        if (head == NULL){
+            head = malloc(sizeof(struct Session));
+            head->id = session_id;
+        }
+        else{
+            pre->next = malloc(sizeof(struct Session));
+            pre->next->id = session_id;
+        }
+
         
         //create session data structure 
         //add socket to session data structure
-        ;
     }else if(type == QUERY){
         for (i = 0; i < NUM_USERS; i++)
             if (is_active[i]){
