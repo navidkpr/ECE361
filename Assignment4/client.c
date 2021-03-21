@@ -11,8 +11,8 @@
 #include <math.h>
 #include "message.h"
 
-char * serverAddress;
-char * serverPortNum;
+char serverAddress[100];
+char serverPortNum[100];
 int loggedIn;
 
 
@@ -78,8 +78,8 @@ int messagePopulate(int command,char * theFirst, char * theRest, struct Message 
             return 1;
         }
         strcpy(message->data, cID);
-        serverAddress = servIP;
-        serverPortNum = servPort;
+        strcpy(serverAddress, servIP);
+        strcpy(serverPortNum, servPort);
         message->size = strlen(pass);
         strcpy(message->data, pass);
     }
@@ -96,8 +96,6 @@ int messagePopulate(int command,char * theFirst, char * theRest, struct Message 
         dataLen = strlen(theRest);
         message->size = dataLen;
         strcpy(message->data, theRest);
-
-
     }
     else if(command == NEW_SESS){
         message->type = NEW_SESS;
