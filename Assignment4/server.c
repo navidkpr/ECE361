@@ -25,7 +25,7 @@ FILE * fPtr;
 const char* users[] = {"Nathan", "Robert", "Navid", "YourMom", "Hamid"};
 const char* pwds[] = {"red", "orange", "yellow", "green", "blue"};
 struct Session *sessions[NUM_USERS] = {NULL, NULL, NULL, NULL, NULL};
-int client_fd[NUM_USERS] = {-1, -1, -1, -1, -1};
+int client_fds[NUM_USERS] = {-1, -1, -1, -1, -1};
 struct Session *head = NULL;
 int is_active[] = {1, 1, 1, 1, 1};
 
@@ -37,10 +37,11 @@ void command_handler(struct Message* msg, int client_fd){
     bool authorized = false;
     int i;
     if(type == LOGIN){
-        for(int i = 0; i < 5; i++){
+        for(int i = 0; i < NUM_USERS; i++){
             // printf("user: %s\n", users[i]);
             // printf("source: %s\n", msg->source);
             if(!strcmp(users[i], (char*)msg->source) && !strcmp(pwds[i], (char*)msg->data)){
+                client_fds[i] = client_fd;
                 char* data = " ";
                 sprintf(ack_msg, "%d:%d:%s:%s", LO_ACK, strlen(data), source, data);
                 send(client_fd, ack_msg, strlen(ack_msg), 0);
@@ -155,10 +156,10 @@ void command_handler(struct Message* msg, int client_fd){
                 cur_session = sessions[i];
         for (i = 0; i < NUM_USERS; i++)
             if (is_active[i] && sessions[i] == cur_session) {
+                sprintf(ack_msg, "%d:%d:%s:%s", MESSAGE, strlen(msg->data), source, msg->data);
+                send(client_fds[i], ack_msg, strlen(ack_msg), 0);
                 //send the message to this client
             } 
-        sprintf(ack_msg, "%d:%d:%s:%s", MESSAGE, strlen(msg->data), source, msg->data);
-        send(client_fd, ack_msg, strlen(ack_msg), 0);
     }
 }
 
