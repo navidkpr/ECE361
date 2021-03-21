@@ -10,7 +10,7 @@
 #include <stdbool.h>
 
 #define BACKLOG 10 
-#define MYHOST "ug163"
+#define MYHOST "ug136"
 #define NUM_USERS 5
 
 #include "message.h"
@@ -66,15 +66,15 @@ void parse_message(char *str, struct Message* msg) {
 
 void command_handler(struct Message* msg, int client_fd){
     int type = msg->type;
-    char ack_msg[600];
+    char ack_msg[MAX_OVER_NETWORK];
     memset(ack_msg,0,sizeof(ack_msg));
     char* source = "Server";
     bool authorized = false;
     int i;
     if(type == LOGIN){
         for(int i = 0; i < 5; i++){
-            printf("user: %s\n", users[i]);
-            printf("source: %s\n", msg->source);
+            // printf("user: %s\n", users[i]);
+            // printf("source: %s\n", msg->source);
             if(!strcmp(users[i], (char*)msg->source) && !strcmp(pwds[i], (char*)msg->data)){
                 char* data = " ";
                 sprintf(ack_msg, "%d:%d:%s:%s", LO_ACK, strlen(data), source, data);
@@ -128,6 +128,7 @@ void command_handler(struct Message* msg, int client_fd){
         ;
     }else if(type == MESSAGE){
         //loop through sockets in specified conference session sending the message
+        //TODO: Need to check if in a session
         char *client_id = msg->source;
         struct Session *cur_session = NULL;
         for (i = 0; i < NUM_USERS; i++)
@@ -191,9 +192,16 @@ int main( int argc, char *argv[] ) {
     printf("Listening for incoming messages...\n\n");
 
     int isDone = 0;
-    char message_str[600];
+    char message_str[MAX_OVER_NETWORK];
     int rec_num_bytes = 0;
     addr_size = sizeof client_addr;
+
+    new_fd = accept(sockfd, (struct sockaddr *) &client_addr, &addr_size);
+    if(new_fd  < 0){
+        perror("Error accepting new connection:");
+        return -1;
+    }
+    printf("Connection accepted\n");
 
     while (!isDone) {
         
@@ -224,14 +232,14 @@ int main( int argc, char *argv[] ) {
         //     }
         //     printf("Connection accepted\n");
         // }
-        new_fd = accept(sockfd, (struct sockaddr *) &client_addr, &addr_size);
-        if(new_fd  < 0){
-            perror("Error accepting new connection:");
-            return -1;
-        }
-        printf("Connection accepted\n");
+        // new_fd = accept(sockfd, (struct sockaddr *) &client_addr, &addr_size);
+        // if(new_fd  < 0){
+        //     perror("Error accepting new connection:");
+        //     return -1;
+        // }
+        // printf("Connection accepted\n");
 
-        rec_num_bytes = recv(new_fd, message_str, 600, 0);
+        rec_num_bytes = recv(new_fd, message_str, MAX_OVER_NETWORK, 0);
         if(rec_num_bytes == -1){
             perror("Error receiving message:");
             return -1;

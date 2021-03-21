@@ -123,9 +123,7 @@ int messagePopulate(int command,char * theFirst, char * theRest, struct Message 
     }
     else{
         message->type = MESSAGE;
-        dataLen += sprintf(message->data, theFirst);
-        dataLen += sprintf(message->data, " ");
-        dataLen += sprintf(message->data, theRest);
+        dataLen += sprintf(message->data, "%s %s",theFirst, theRest);
         message->size = dataLen; //excluding NULL character
     }
 
@@ -156,7 +154,8 @@ int main( int argc, char *argv[] )
         fgets(inputPre, sizeof(inputPre), stdin);
         char * inputPost = strtok(inputPre, "\n");
         char * firstWord = strtok(inputPost, " ");
-
+        inputPost = inputPost + strlen(inputPost) + 1; //to find theRest
+        
         int command = checkCommand(firstWord);
         if (command == -1 && !loggedIn){
             break;
@@ -164,6 +163,8 @@ int main( int argc, char *argv[] )
         else if (command == -1 && loggedIn){
             quit = 1;
         }
+
+        
         err = messagePopulate(command, firstWord, inputPost, &message);
         if (err){
             puts("BRODY, U DONE GOOFED WIT DA COMMAND, TRY AGAIN\n");
@@ -198,7 +199,7 @@ int main( int argc, char *argv[] )
             loggedIn = 0;
         }
         
-        char messageString[600];
+        char messageString[MAX_OVER_NETWORK];
         memset(messageString,0,sizeof(messageString));
         sprintf(messageString, "%d:%d:%s:%s", message.type, message.size, message.source, message.data);
 
