@@ -11,29 +11,31 @@
 #include <math.h>
 #include "message.h"
 
+char * serverAddress;
+char * serverPortNum;
+int loggedIn;
 
 
-
-int recvtimeout(int s, char *buf, int len, struct addrinfo * servinfo, int timeout)
-{
-    fd_set fds;
-    int n;
-    struct timeval tv;
-    // set up the file descriptor set
-    FD_ZERO(&fds);
-    FD_SET(s, &fds);
-    // set up the struct timeval for the timeout
-    tv.tv_sec = 0;
-    tv.tv_usec = timeout;
-    // wait until timeout or data received
-    n = select(s+1, &fds, NULL, NULL, &tv);
-    if (n == 0) return -2; // timeout!
-    if (n == -1) return -1; // error
-    // data must be here, so do a normal recv()
-    return recvfrom(s, (char *)buf, len,  
-                    0, servinfo->ai_addr, 
-                    &servinfo->ai_addrlen);
-}
+// int recvtimeout(int s, char *buf, int len, struct addrinfo * servinfo, int timeout)
+// {
+//     fd_set fds;
+//     int n;
+//     struct timeval tv;
+//     // set up the file descriptor set
+//     FD_ZERO(&fds);
+//     FD_SET(s, &fds);
+//     // set up the struct timeval for the timeout
+//     tv.tv_sec = 0;
+//     tv.tv_usec = timeout;
+//     // wait until timeout or data received
+//     n = select(s+1, &fds, NULL, NULL, &tv);
+//     if (n == 0) return -2; // timeout!
+//     if (n == -1) return -1; // error
+//     // data must be here, so do a normal recv()
+//     return recvfrom(s, (char *)buf, len,  
+//                     0, servinfo->ai_addr, 
+//                     &servinfo->ai_addrlen);
+// }
 
 int checkCommand(char * command){
     if (strcmp(command, "/login") == 0){
@@ -75,32 +77,50 @@ int messagePopulate(int command,char * theFirst, char * theRest, struct Message 
         if (cID == NULL || pass == NULL || servIP == NULL || servPort == NULL){
             return 1;
         }
-        message->source = cID;
-
-
+        strcpy(message->data, cID);
+        serverAddress = servIP;
+        serverPortNum = servPort;
+        message->size = strlen(pass);
+        strcpy(message->data, pass);
     }
-    else if(command == EXIT){
+    else if(command == EXIT || (loggedIn && command == -1)){ //exit server
         message->type = EXIT;
-
+        message->size = 0;
+        strcpy(message->data, "");
     }
     else if(command == JOIN){
         message->type = JOIN;
+        if (theRest == NULL){
+            return 1;
+        }
+        dataLen = strlen(theRest);
+        message->size = dataLen;
+        strcpy(message->data, theRest);
+
 
     }
     else if(command == NEW_SESS){
         message->type = NEW_SESS;
-
+        if (theRest == NULL){
+            return 1;
+        }
+        dataLen = strlen(theRest);
+        message->size = dataLen;
+        strcpy(message->data, theRest);
     }
     else if(command == LEAVE_SESS){
         message->type = LEAVE_SESS;
+        message->size = 0;
+        strcpy(message->data, "");
 
     }
-    else if(command == QUERY){
+    else if(command == QUERY){ //list
         message->type = QUERY;
-        message->size
+        message->size = 0;
+        strcpy(message->data, "");
 
     }
-    else if(command == -1){
+    else if(command == -1){ //quit
         message->type = -1;
     }
     else{
@@ -116,13 +136,19 @@ int messagePopulate(int command,char * theFirst, char * theRest, struct Message 
 
 int main( int argc, char *argv[] )
 {
-    // clock_t start, end;
-    // double cpu_time_used;
-    char * serverAddress;
-    char * serverPortNum;
-    
-
+    loggedIn = 0;
     int quit = 0;
+
+    int sockfd;
+    struct addrinfo hints, *servinfo;
+    int rv;
+    int sendNumBytes;
+    int recieveNumBytes;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
     
     while(!quit){
         int err;
@@ -134,39 +160,76 @@ int main( int argc, char *argv[] )
         char * firstWord = strtok(inputPost, " ");
 
         int command = checkCommand(firstWord);
+        if (command == -1 && !loggedIn){
+            break;
+        }
+        else if (command == -1 && loggedIn){
+            quit = 1;
+        }
         err = messagePopulate(command, firstWord, inputPost, message);
-
-
-        int sockfd;
-        struct addrinfo hints, *servinfo;
-        int rv;
-        int sendNumBytes;
-        int recieveNumBytes;
-        char buffer[1000];
-
-        memset(&hints, 0, sizeof hints);
-        hints.ai_family = AF_UNSPEC;
-        hints.ai_socktype = SOCK_STREAM;
-        hints.ai_flags = AI_PASSIVE;
-
-        
+        if (err){
+            puts("BRODY, U DONE GOOFED WIT DA COMMAND, TRY AGAIN\n");
+            continue;
+        }
 
         //-----------------------------------------------------------------------------------------------------------
 
-
-        if ((rv = getaddrinfo(serverAddress, serverPortNum, &hints, &servinfo)) != 0) {
-            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-            return 1;
+        if (!loggedIn && command == LOGIN){
+            if ((rv = getaddrinfo(serverAddress, serverPortNum, &hints, &servinfo)) != 0) {
+                fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+                return 1;
+            }
+            
+            sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+            if(sockfd < 0){
+                printf("Error while creating socket\n");
+                return -1;
+            }
+            printf("Socket created successfully\n");
+            loggedIn = 1;
+        }
+        else if(loggedIn && command == EXIT){
+            freeaddrinfo(servinfo);
+            close(sockfd);
+            loggedIn = 0;
         }
         
-        sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
-        if(sockfd < 0){
-            printf("Error while creating socket\n");
-            return -1;
-        }
-        printf("Socket created successfully\n");
+        char messageString[600];
+        memset(messageString,0,sizeof(messageString));
+        sprintf(messageString, "%u:%u:", message->type, message->size);
+        sprintf(messageString, message->source); //unsigned char lol?
+        sprintf(messageString, ":");
+        sprintf(messageString, message->data);
 
-        int x;
+        if ((sendNumBytes = send(sockfd, messageString, strlen(messageString), 0) == -1)) {
+            perror("client: send1");
+            exit(1);
+        }
+
+        char buffer[1000];
+
+        if ((recieveNumBytes = recv(sockfd, (char *)buffer, 1000, 0)) == -1){
+            perror("client: recv1");
+            exit(1);
+        }
+
+        buffer[recieveNumBytes] = '\0';
+        if (strcmp(buffer, "ACK") == 0){
+            printf("ACK received\n");
+        }
+    
+    }
+
+    
+    return 0;
+}
+
+
+
+
+
+
+// int x;
         //, timeOut, resend, timeOutTime, devRTT, estimatedRTT
         // timeOutTime = 10000;
         // for (x = 1; x <= packet.total_frag; x++){
@@ -235,21 +298,3 @@ int main( int argc, char *argv[] )
 
             
         // }
-
-        if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
-            servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
-            perror("deliver: sendto1");
-            exit(1);
-        }
-
-        buffer[recieveNumBytes] = '\0';
-        if (strcmp(buffer, "ACK") == 0){
-            printf("ACK received\n");
-        }
-    
-    }
-
-    freeaddrinfo(servinfo);
-    close(sockfd);
-    return 0;
-}
