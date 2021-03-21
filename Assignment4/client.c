@@ -77,7 +77,7 @@ int messagePopulate(int command,char * theFirst, char * theRest, struct Message 
         if (cID == NULL || pass == NULL || servIP == NULL || servPort == NULL){
             return 1;
         }
-        strcpy(message->data, cID);
+        strcpy(message->source, cID);
         strcpy(serverAddress, servIP);
         strcpy(serverPortNum, servPort);
         message->size = strlen(pass);
@@ -146,11 +146,11 @@ int main( int argc, char *argv[] )
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
+    //hints.ai_flags = AI_PASSIVE;
     
     while(!quit){
         int err;
-        struct Message * message;
+        struct Message message;
         char inputPre[500];
 
         fgets(inputPre, sizeof(inputPre), stdin);
@@ -164,7 +164,7 @@ int main( int argc, char *argv[] )
         else if (command == -1 && loggedIn){
             quit = 1;
         }
-        err = messagePopulate(command, firstWord, inputPost, message);
+        err = messagePopulate(command, firstWord, inputPost, &message);
         if (err){
             puts("BRODY, U DONE GOOFED WIT DA COMMAND, TRY AGAIN\n");
             continue;
@@ -184,6 +184,12 @@ int main( int argc, char *argv[] )
                 return -1;
             }
             printf("Socket created successfully\n");
+
+            if(connect(sockfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1){
+                close(sockfd);
+                printf("Error connecting to socket\n");
+            }
+            printf("Connection successful\n");
             loggedIn = 1;
         }
         else if(loggedIn && command == EXIT){
@@ -194,15 +200,13 @@ int main( int argc, char *argv[] )
         
         char messageString[600];
         memset(messageString,0,sizeof(messageString));
-        sprintf(messageString, "%u:%u:", message->type, message->size);
-        sprintf(messageString, message->source); //unsigned char lol?
-        sprintf(messageString, ":");
-        sprintf(messageString, message->data);
+        sprintf(messageString, "%d:%d:%s:%s", message.type, message.size, message.source, message.data);
 
         if ((sendNumBytes = send(sockfd, messageString, strlen(messageString), 0) == -1)) {
             perror("client: send1");
             exit(1);
         }
+        printf("Sent: %s", messageString);
 
         char buffer[1000];
 
@@ -210,6 +214,7 @@ int main( int argc, char *argv[] )
             perror("client: recv1");
             exit(1);
         }
+        printf("Received: %s", buffer);
 
         buffer[recieveNumBytes] = '\0';
         if (strcmp(buffer, "ACK") == 0){

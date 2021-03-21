@@ -10,7 +10,7 @@
 #include <stdbool.h>
 
 #define BACKLOG 10 
-#define MYHOST "ug137"
+#define MYHOST "ug163"
 
 #include "message.h"
 
@@ -18,12 +18,10 @@ FILE * fPtr;
 const char* users[] = {"Nathan, Robert, Navid, YourMom, Hamid"};
 const char* pwds[] = {"red, orange, yellow, green, blue"};
 
-struct Message * parse_message(char *str) {
+void parse_message(char *str, struct Message* msg) {
     
     int type = 0;
     int size = 0;
-
-    struct Message* msg;
 
     int pt = 0;
     while (str[pt] != ':') {
@@ -56,8 +54,6 @@ struct Message * parse_message(char *str) {
     memcpy (data, &str[st_pt], size);
     data[size] = '\0';
     memcpy(msg->data, data, size + 1);
-
-    return msg;
 }
 
 void command_handler(struct Message* msg, int client_fd){
@@ -157,39 +153,52 @@ int main( int argc, char *argv[] ) {
 
     while (!isDone) {
         
-        FD_ZERO(&sock_set);
-        FD_SET(sockfd, &sock_set);
-        int max_sd = sockfd;
+        // FD_ZERO(&sock_set);
+        // FD_SET(sockfd, &sock_set);
+        // int max_sd = sockfd;
 
-        for(int i = 0; i < 10/*MAX_CLIENTS*/; i++){
-            //sd = socket_fd//whatever the socket data structure is 
-            int sd = 1;
-            if(sd > 0)
-                FD_SET(sd, &sock_set);
+        // for(int i = 0; i < 10/*MAX_CLIENTS*/; i++){
+        //     //sd = socket_fd//whatever the socket data structure is 
+        //     int sd = 0;
+        //     if(sd > 0)
+        //         FD_SET(sd, &sock_set);
             
-            if(sd > max_sd)
-                max_sd = sd;
-        }
+        //     if(sd > max_sd)
+        //         max_sd = sd;
+        // }
 
-        if(select(max_sd+1, &sock_set, NULL, NULL, NULL) < 0){
-            printf("Error selecting socket\n");
+        // if(select(max_sd+1, &sock_set, NULL, NULL, NULL) < 0){
+        //     printf("Error selecting socket\n");
+        //     return -1;
+        // }
+        // printf("Socket selected\n");
+
+        // if(FD_ISSET(sockfd, &sock_set)){
+        //     if(new_fd = accept(sockfd, (struct sockaddr *) &client_addr, &addr_size) < 0){
+        //         printf("Error accepting new connection\n");
+        //         return -1;
+        //     }
+        //     printf("Connection accepted\n");
+        // }
+
+        if(new_fd = accept(sockfd, (struct sockaddr *) &client_addr, &addr_size) < 0){
+            printf("Error accepting new connection\n");
             return -1;
         }
-
-        if(FD_ISSET(sockfd, &sock_set)){
-            if(new_fd = accept(sockfd, (struct sockaddr *) &client_addr, &addr_size) < 0){
-                printf("Error accepting new connection\n");
-                return -1;
-            }
-        }
+        printf("Connection accepted\n");
 
         rec_num_bytes = recv(new_fd, message_str, MAX_DATA-1, 0);
+        if(rec_num_bytes == -1){
+            printf("Error receiving message\n");
+            return -1;
+        }
         message_str[rec_num_bytes] = '\0';
+        printf("Received: %s", message_str);
 
-        struct Message* msg;
-        msg = parse_message(message_str);
+        struct Message msg;
+        parse_message(message_str, &msg);
 
-        command_handler(msg, new_fd);
+        command_handler(&msg, new_fd);
 
     }
 
