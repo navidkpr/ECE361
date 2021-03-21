@@ -24,7 +24,8 @@ struct Session {
 FILE * fPtr;
 const char* users[] = {"Nathan", "Robert", "Navid", "YourMom", "Hamid"};
 const char* pwds[] = {"red", "orange", "yellow", "green", "blue"};
-struct Session *sessions[NUM_USERS] = {NULL, NULL, NULL, NULL};
+struct Session *sessions[NUM_USERS] = {NULL, NULL, NULL, NULL, NULL};
+int client_fd[NUM_USERS] = {-1, -1, -1, -1, -1};
 struct Session *head = NULL;
 int is_active[] = {1, 1, 1, 1, 1};
 
@@ -113,7 +114,7 @@ void command_handler(struct Message* msg, int client_fd){
         puts("check - 3\n");
         if (head == NULL){
             head = malloc(sizeof(struct Session));
-            head->id = session_id;
+            strcpy(head->id, session_id);
             
             for (i = 0; i < NUM_USERS; i++)
                 if (strcmp(client_id, users[i]) == 0)
@@ -121,7 +122,7 @@ void command_handler(struct Message* msg, int client_fd){
         }
         else{
             pre->next = malloc(sizeof(struct Session));
-            pre->next->id = session_id;
+            strcpy(pre->next->id, session_id);
             for (i = 0; i < NUM_USERS; i++)
                 if (strcmp(client_id, users[i]) == 0)
                     sessions[i] = pre->next;
