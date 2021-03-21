@@ -180,14 +180,14 @@ int main( int argc, char *argv[] )
             
             sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
             if(sockfd < 0){
-                printf("Error while creating socket\n");
+                perror("Error while creating socket\n");
                 return -1;
             }
             printf("Socket created successfully\n");
 
             if(connect(sockfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1){
                 close(sockfd);
-                printf("Error connecting to socket\n");
+                perror("Error connecting to socket\n");
             }
             printf("Connection successful\n");
             loggedIn = 1;
@@ -206,7 +206,7 @@ int main( int argc, char *argv[] )
             perror("client: send1");
             exit(1);
         }
-        printf("Sent: %s", messageString);
+        printf("Sent: %s\n", messageString);
 
         char buffer[1000];
 
@@ -214,9 +214,9 @@ int main( int argc, char *argv[] )
             perror("client: recv1");
             exit(1);
         }
-        printf("Received: %s", buffer);
-
         buffer[recieveNumBytes] = '\0';
+        printf("Received: %s\n", buffer);
+
         if (strcmp(buffer, "ACK") == 0){
             printf("ACK received\n");
         }

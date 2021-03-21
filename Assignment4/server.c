@@ -21,8 +21,8 @@ struct Session {
 }; 
 
 FILE * fPtr;
-const char* users[] = {"Nathan, Robert, Navid, YourMom, Hamid"};
-const char* pwds[] = {"red, orange, yellow, green, blue"};
+const char* users[] = {"Nathan", "Robert", "Navid", "YourMom", "Hamid"};
+const char* pwds[] = {"red", "orange", "yellow", "green", "blue"};
 struct Session *sessions[NUM_USERS] = {NULL, NULL, NULL, NULL};
 int is_active[] = {1, 1, 1, 1, 1};
 
@@ -66,22 +66,26 @@ void parse_message(char *str, struct Message* msg) {
 
 void command_handler(struct Message* msg, int client_fd){
     int type = msg->type;
-    char* ack_msg;
+    char ack_msg[600];
+    memset(ack_msg,0,sizeof(ack_msg));
     char* source = "Server";
     bool authorized = false;
     int i;
     if(type == LOGIN){
         for(int i = 0; i < 5; i++){
-            if(strcmp(users[i], msg->source) && strcmp(pwds[i], msg->data)){
+            printf("user: %s\n", users[i]);
+            printf("source: %s\n", msg->source);
+            if(!strcmp(users[i], (char*)msg->source) && !strcmp(pwds[i], (char*)msg->data)){
                 char* data = " ";
-                sprintf(ack_msg, "%u:%u:%s:%s", LO_ACK, strlen(data), source, data);
+                sprintf(ack_msg, "%d:%d:%s:%s", LO_ACK, strlen(data), source, data);
                 send(client_fd, ack_msg, strlen(ack_msg), 0);
                 authorized = true;
+                break;
             }
         }
         if(!authorized){
             char* data = "Incorrect login info didiot";
-            sprintf(ack_msg, "%u:%u:%s:%s", LO_NACK, strlen(data), source, data);
+            sprintf(ack_msg, "%d:%d:%s:%s", LO_NACK, strlen(data), source, data);
             send(client_fd, ack_msg, strlen(ack_msg), 0);
         }
     }else if(type == EXIT){
@@ -111,10 +115,14 @@ void command_handler(struct Message* msg, int client_fd){
         //add socket to session data structure
         ;
     }else if(type == QUERY){
-        
         for (i = 0; i < NUM_USERS; i++)
-            if (is_active[i])
-                sprintf(ack_msg + strlen(ack_msg), "%s:%s\n", users[i], sessions[i]->id);
+            if (is_active[i]){
+                if(sessions[i] == NULL){
+                    sprintf(ack_msg + strlen(ack_msg), "%s:No Session\n", users[i]);
+                }else{
+                    sprintf(ack_msg + strlen(ack_msg), "%s:%s\n", users[i], sessions[i]->id);
+                }
+            }
         send(client_fd, ack_msg, strlen(ack_msg), 0);
         //send a message of all online users and available sessions
         ;
@@ -129,7 +137,7 @@ void command_handler(struct Message* msg, int client_fd){
             if (is_active[i] && sessions[i] == cur_session) {
                 //send the message to this client
             } 
-        sprintf(ack_msg, "%u:%u:%s:%s", MESSAGE, strlen(msg->data), source, msg->data);
+        sprintf(ack_msg, "%d:%d:%s:%s", MESSAGE, strlen(msg->data), source, msg->data);
         send(client_fd, ack_msg, strlen(ack_msg), 0);
     }
 }
@@ -183,7 +191,7 @@ int main( int argc, char *argv[] ) {
     printf("Listening for incoming messages...\n\n");
 
     int isDone = 0;
-    char message_str[MAX_DATA];
+    char message_str[600];
     int rec_num_bytes = 0;
     addr_size = sizeof client_addr;
 
@@ -216,20 +224,19 @@ int main( int argc, char *argv[] ) {
         //     }
         //     printf("Connection accepted\n");
         // }
-
-        if(new_fd = accept(sockfd, (struct sockaddr *) &client_addr, &addr_size) < 0){
-            printf("Error accepting new connection\n");
+        new_fd = accept(sockfd, (struct sockaddr *) &client_addr, &addr_size);
+        if(new_fd  < 0){
+            perror("Error accepting new connection:");
             return -1;
         }
         printf("Connection accepted\n");
 
-        rec_num_bytes = recv(new_fd, message_str, MAX_DATA-1, 0);
+        rec_num_bytes = recv(new_fd, message_str, 600, 0);
         if(rec_num_bytes == -1){
-            printf("Error receiving message\n");
+            perror("Error receiving message:");
             return -1;
         }
         message_str[rec_num_bytes] = '\0';
-        printf("Received: %s", message_str);
 
         struct Message msg;
         parse_message(message_str, &msg);
