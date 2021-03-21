@@ -23,8 +23,8 @@ struct Session {
 FILE * fPtr;
 const char* users[] = {"Nathan, Robert, Navid, YourMom, Hamid"};
 const char* pwds[] = {"red, orange, yellow, green, blue"};
-struct Session *sessions = {NULL, NULL, NULL, NULL};
-int is_active[] = {1, 1, 1, 1, 1}
+struct Session *sessions[NUM_USERS] = {NULL, NULL, NULL, NULL};
+int is_active[] = {1, 1, 1, 1, 1};
 
 void parse_message(char *str, struct Message* msg) {
     
@@ -69,6 +69,7 @@ void command_handler(struct Message* msg, int client_fd){
     char* ack_msg;
     char* source = "Server";
     bool authorized = false;
+    int i;
     if(type == LOGIN){
         for(int i = 0; i < 5; i++){
             if(strcmp(users[i], msg->source) && strcmp(pwds[i], msg->data)){
@@ -113,7 +114,7 @@ void command_handler(struct Message* msg, int client_fd){
         
         for (i = 0; i < NUM_USERS; i++)
             if (is_active[i])
-                sprintf(ack_msg, "%s:%s\n", users[i], sessions[i]->id)    
+                sprintf(ack_msg + strlen(ack_msg), "%s:%s\n", users[i], sessions[i]->id);
         send(client_fd, ack_msg, strlen(ack_msg), 0);
         //send a message of all online users and available sessions
         ;
@@ -125,7 +126,7 @@ void command_handler(struct Message* msg, int client_fd){
             if (is_active[i] && strcmp(users[i], client_id) == 0)
                 cur_session = sessions[i];
         for (i = 0; i < NUM_USERS; i++)
-            if (is_active[i] && session[i] == cur_session) {
+            if (is_active[i] && sessions[i] == cur_session) {
                 //send the message to this client
             } 
         sprintf(ack_msg, "%u:%u:%s:%s", MESSAGE, strlen(msg->data), source, msg->data);
