@@ -147,7 +147,6 @@ void printAckAndUpdateSession(struct Message * resp){
     }
     else if(resp->type == JN_NACK){
         printf("%s\n", resp->data);
-        inSession = 0;
     }
     else if(resp->type == NS_ACK){
         puts("We Created a Sesh\n");
@@ -155,10 +154,13 @@ void printAckAndUpdateSession(struct Message * resp){
     }
     else if(resp->type == NS_NACK){
         printf("%s\n", resp->data);
-        inSession = 0;
     }
     else if(resp->type == QU_ACK){
         printf("Session List: \n %s", resp->data);
+    }
+    else if(resp->type == LS_ACK){
+        puts("We Outta Session\n");
+        inSession = 0;
     }
 }
 
@@ -211,7 +213,9 @@ int main( int argc, char *argv[] )
                     exit(1);
                 }
                 buffer[recieveNumBytes] = '\0';
-                printf("From Conf Session: %s\n", buffer);
+                struct Message recvMsg;
+                parse_message(buffer, &recvMsg);
+                printf("From Conf Session: %s\n", recvMsg.data);
             }
 
             if( FD_ISSET(STDIN_FILENO, &read_fds ))
@@ -234,10 +238,10 @@ int main( int argc, char *argv[] )
                 
                 err = messagePopulate(command, firstWord, inputPost, &message);
                 if (err){
-                    if (err = 1){
+                    if (err == 1){
                         puts("BRODY, U DONE GOOFED WIT DA COMMAND, TRY AGAIN\n");
                     }
-                    else if (err = 2){
+                    else if (err == 2){
                         puts("class is not in SESSION, u can't send dis\n");
                     }
                     
@@ -266,11 +270,7 @@ int main( int argc, char *argv[] )
                     printf("Connection successful\n");
                     loggedIn = 1;
                 }
-                else if(loggedIn && command == EXIT){
-                    freeaddrinfo(servinfo);
-                    close(sockfd);
-                    loggedIn = 0;
-                }
+                
 
                 
                 
@@ -303,6 +303,12 @@ int main( int argc, char *argv[] )
                 }
 
                 printAckAndUpdateSession(&recvMsg);
+
+                if(loggedIn && command == EXIT){
+                    freeaddrinfo(servinfo);
+                    close(sockfd);
+                    loggedIn = 0;
+                }
             }
         }
         else{
@@ -322,10 +328,10 @@ int main( int argc, char *argv[] )
             
             err = messagePopulate(command, firstWord, inputPost, &message);
             if (err){
-                if (err = 1){
+                if (err == 1){
                     puts("BRODY, U DONE GOOFED WIT DA COMMAND, TRY AGAIN\n");
                 }
-                else if (err = 2){
+                else if (err == 2){
                     puts("class is not in SESSION, u can't send dis\n");
                 }
                 
@@ -354,11 +360,7 @@ int main( int argc, char *argv[] )
                 printf("Connection successful\n");
                 loggedIn = 1;
             }
-            else if(loggedIn && command == EXIT){
-                freeaddrinfo(servinfo);
-                close(sockfd);
-                loggedIn = 0;
-            }
+            
 
             
             
@@ -370,7 +372,7 @@ int main( int argc, char *argv[] )
                 perror("client: send1");
                 exit(1);
             }
-            printf("Sent: %s\n", messageString);
+            //printf("Sent: %s\n", messageString);
 
             
 
@@ -379,7 +381,7 @@ int main( int argc, char *argv[] )
                 exit(1);
             }
             buffer[recieveNumBytes] = '\0';
-            printf("Received: %s\n", buffer);
+            //printf("Received: %s\n", buffer);
 
             struct Message recvMsg;
             parse_message(buffer, &recvMsg);
@@ -391,6 +393,12 @@ int main( int argc, char *argv[] )
             }
 
             printAckAndUpdateSession(&recvMsg);
+
+            if(loggedIn && command == EXIT){
+                freeaddrinfo(servinfo);
+                close(sockfd);
+                loggedIn = 0;
+            }
         }
 
     }
@@ -398,78 +406,3 @@ int main( int argc, char *argv[] )
     
     return 0;
 }
-
-
-
-
-
-
-// int x;
-        //, timeOut, resend, timeOutTime, devRTT, estimatedRTT
-        // timeOutTime = 10000;
-        // for (x = 1; x <= packet.total_frag; x++){
-        //     packet.frag_no = (unsigned int)x;
-        //     if (filelen > 1000){
-        //         packet.size = 1000;
-        //     }
-        //     else{
-        //         packet.size = (unsigned int)filelen;
-        //     }
-        //     filelen -= 1000;
-        //     fread(packet.filedata, 1, packet.size,fileptr); //fread increments fileptr
-        //     memset(packetString,0,sizeof(packetString));
-
-        //     sprintf(packetString, "%u", packet.total_frag);
-        //     strcat(packetString, ":");
-        //     sprintf(packetString + strlen(packetString), "%u", packet.frag_no);
-        //     strcat(packetString, ":");
-        //     sprintf(packetString + strlen(packetString), "%u",packet.size);
-        //     strcat(packetString, ":");
-        //     sprintf(packetString + strlen(packetString), "%s",packet.filename);
-        //     strcat(packetString, ":");
-        //     int packetHeaderLen = strlen(packetString);
-        //     memcpy(packetString + strlen(packetString), packet.filedata, packet.size);
-        //     start = clock();
-        //     if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
-        //         servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
-        //         perror("deliver: sendto1");
-        //         exit(1);
-        //     }
-        //     resend = 0;
-        //     do { 
-        //         timeOut = recvtimeout(sockfd, buffer, 1000, servinfo, timeOutTime);
-        //         if (timeOut == -2){
-        //             if (resend == 3){
-        //                 perror("TIMEOUT");
-        //                 exit(1);
-        //             }
-        //             if ((sendNumBytes = sendto(sockfd, packetString, packetHeaderLen + packet.size, 0,
-        //                 servinfo->ai_addr, servinfo->ai_addrlen)) == -1) {
-        //                 perror("deliver: sendto2");
-        //                 exit(1);
-        //             }
-        //             puts("Attempting to resend");
-        //             resend ++;
-                    
-        //         }
-        //         else if (timeOut == -1){
-        //             perror("recev: fram");
-        //             exit(1);
-        //         }
-        //     }while(timeOut == -2);
-        //     resend = 0;
-        //     end = clock();
-        //     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-        //     if (x == 1){
-        //         estimatedRTT = cpu_time_used * 1000000;
-        //         devRTT = cpu_time_used*1000000/2;
-        //         timeOutTime = estimatedRTT + fmax(4*devRTT, G);
-        //     }
-        //     else{
-        //         estimatedRTT = (int)((1-0.125)*estimatedRTT + 0.125*(cpu_time_used * 1000000));
-        //         devRTT = (int)(0.75*devRTT + 0.25*abs(cpu_time_used * 1000000 - estimatedRTT));
-        //         timeOutTime = estimatedRTT + fmax(4*devRTT, G);
-        //     }
-
-            
-        // }
