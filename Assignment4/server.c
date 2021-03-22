@@ -82,6 +82,8 @@ void command_handler(struct Message* msg, int client_fd){
                 sprintf(data, "Session %s joined", session_id);
                 sprintf(ack_msg, "%d:%d:%s:%s", JN_ACK, strlen(data), session_id, data);
                 send(client_fd, ack_msg, strlen(ack_msg), 0);
+                printf("Session joined\n");
+
             }
             cur = cur->next;
         }
@@ -91,6 +93,8 @@ void command_handler(struct Message* msg, int client_fd){
             sprintf(data, "Session %s not found", session_id);
             sprintf(ack_msg, "%d:%d:%s:%s", JN_NACK, strlen(data), session_id, data);
             send(client_fd, ack_msg, strlen(ack_msg), 0);
+            printf("Session not found\n");
+
         }
 
     }else if(type == LEAVE_SESS){
@@ -102,14 +106,14 @@ void command_handler(struct Message* msg, int client_fd){
         //remove socket from session data structure
         ;
     }else if(type == NEW_SESS){
-        puts("We made it boise\n");
+        //puts("We made it boise\n");
         char *session_id = (char *)msg->data;
         char *client_id = (char *)msg->source;
 
         struct Session *pre = NULL;
         struct Session *cur = head;
 
-        puts("check - 2\n"); 
+        //puts("check - 2\n"); 
         while (cur != NULL) {
             if (strcmp(session_id, cur->id) == 0) {
                 char data[MAX_OVER_NETWORK];
@@ -121,7 +125,7 @@ void command_handler(struct Message* msg, int client_fd){
             pre = cur;
             cur = cur->next;
         }
-        puts("check - 3\n");
+        //puts("check - 3\n");
         if (head == NULL){
             head = malloc(sizeof(struct Session));
             strcpy(head->id, session_id);
@@ -146,6 +150,7 @@ void command_handler(struct Message* msg, int client_fd){
         sprintf(data, "Session %s created", session_id);
         sprintf(ack_msg, "%d:%d:%s:%s", NS_ACK, strlen(data), session_id, data);
         send(client_fd, ack_msg, strlen(ack_msg), 0);
+        printf("Session created\n");
         //create session data structure 
         //add socket to session data structure
     }else if(type == QUERY){
@@ -231,16 +236,19 @@ int main( int argc, char *argv[] ) {
 
     printf("Listening for incoming messages...\n\n");
 
+    //FD_SET(serv_fd, &master);
+
     int isDone = 0;
     char message_str[MAX_OVER_NETWORK];
     int rec_num_bytes = 0;
     addr_size = sizeof client_addr;
+    int max_sd = serv_fd;
 
     while (!isDone) {
         
         FD_ZERO(&sock_set);
         FD_SET(serv_fd, &sock_set);
-        int max_sd = serv_fd;
+
 
         for(int i = 0; i < NUM_USERS; i++){ 
             if(is_active[i]){ 
@@ -254,7 +262,7 @@ int main( int argc, char *argv[] ) {
         }
 
         if(select(max_sd+1, &sock_set, NULL, NULL, NULL) < 0){
-            printf("Error selecting socket\n");
+            perror("Error selecting socket:");
             return -1;
         }
         //printf("Socket selected\n");
@@ -286,7 +294,8 @@ int main( int argc, char *argv[] ) {
                 int s_fd = client_fds[i];
 
                 if(FD_ISSET(s_fd, &sock_set)){
-                    rec_num_bytes = recv(new_fd, message_str, MAX_OVER_NETWORK, 0);
+                    printf("%d\n",s_fd);
+                    rec_num_bytes = recv(s_fd, message_str, MAX_OVER_NETWORK, 0);
                 
                     if(rec_num_bytes == -1){
                         perror("Error receiving message:");
@@ -298,7 +307,7 @@ int main( int argc, char *argv[] ) {
                     struct Message msg;
                     parse_message(message_str, &msg);
 
-                    command_handler(&msg, new_fd);
+                    command_handler(&msg, s_fd);
                 }
                 
             }
