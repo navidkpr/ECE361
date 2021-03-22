@@ -216,7 +216,7 @@ int main( int argc, char *argv[] )
             exit(1);
         }
         buffer[recieveNumBytes] = '\0';
-        printf("Received: \n %s", buffer);
+        printf("Received: %s\n", buffer);
 
         struct Message recvMsg;
         parse_message(buffer, &recvMsg);
