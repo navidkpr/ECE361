@@ -40,16 +40,24 @@ void command_handler(struct Message* msg, int client_fd){
             // printf("user: %s\n", users[i]);
             // printf("source: %s\n", msg->source);
             if(!strcmp(users[i], (char*)msg->source) && !strcmp(pwds[i], (char*)msg->data)){
-                client_fds[i] = client_fd;
-                char* data = " ";
-                sprintf(ack_msg, "%d:%d:%s:%s", LO_ACK, strlen(data), source, data);
-                send(client_fd, ack_msg, strlen(ack_msg), 0);
-                authorized = true;
-                is_active[i] = 1;
-                break;
+                if(is_active[i]){
+                    char* data = "Already logged in";
+                    sprintf(ack_msg, "%d:%d:%s:%s", LO_NACK, strlen(data), msg->source, data);
+                    send(client_fd, ack_msg, strlen(ack_msg), 0);
+                    authorized = true;
+                }else{
+                    client_fds[i] = client_fd;
+                    char* data = " ";
+                    sprintf(ack_msg, "%d:%d:%s:%s", LO_ACK, strlen(data), source, data);
+                    send(client_fd, ack_msg, strlen(ack_msg), 0);
+                    authorized = true;
+                    is_active[i] = 1;
+                    break;
+                }
             }
+            if(authorized) break;
         }
-        if(!authorized){
+        if(!authorized && !is_active[i]){
             char* data = "Incorrect login info didiot";
             sprintf(ack_msg, "%d:%d:%s:%s", LO_NACK, strlen(data), source, data);
             send(client_fd, ack_msg, strlen(ack_msg), 0);
@@ -102,6 +110,9 @@ void command_handler(struct Message* msg, int client_fd){
         for (i = 0; i < NUM_USERS; i++)
             if (strcmp(client_id, users[i]) == 0)
                 sessions[i] = NULL;
+
+        char* data = "Left session";
+        sprintf(ack_msg, "%d:%d:%s:%s", LS_ACK, strlen(data), msg->source, data);
         send(client_fd, ack_msg, strlen(ack_msg), 0);
         //remove socket from session data structure
         ;
@@ -294,7 +305,7 @@ int main( int argc, char *argv[] ) {
                 int s_fd = client_fds[i];
 
                 if(FD_ISSET(s_fd, &sock_set)){
-                    printf("%d\n",s_fd);
+                    //printf("%d\n",s_fd);
                     rec_num_bytes = recv(s_fd, message_str, MAX_OVER_NETWORK, 0);
                 
                     if(rec_num_bytes == -1){
