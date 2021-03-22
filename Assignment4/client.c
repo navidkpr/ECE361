@@ -261,13 +261,13 @@ int main( int argc, char *argv[] )
                         perror("Error while creating socket\n");
                         return -1;
                     }
-                    printf("Socket created successfully\n");
+                    //printf("Socket created successfully\n");
 
                     if(connect(sockfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1){
                         close(sockfd);
                         perror("Error connecting to socket\n");
                     }
-                    printf("Connection successful\n");
+                    //printf("Connection successful\n");
                     loggedIn = 1;
                 }
                 
@@ -355,13 +355,13 @@ int main( int argc, char *argv[] )
                     perror("Error while creating socket\n");
                     return -1;
                 }
-                printf("Socket created successfully\n");
+                //printf("Socket created successfully\n");
 
                 if(connect(sockfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1){
                     close(sockfd);
                     perror("Error connecting to socket\n");
                 }
-                printf("Connection successful\n");
+                //printf("Connection successful\n");
                 loggedIn = 1;
             }
             
