@@ -10,12 +10,11 @@
 #include <stdbool.h>
 
 #define BACKLOG 10 
-#define MYHOST "ug163"
 #define NUM_USERS 5
 
 #include "message.h"
 
-
+char MYHOST[10];
 struct Session {
     char *id;
     struct Session *next;
@@ -145,7 +144,7 @@ void command_handler(struct Message* msg, int client_fd){
         char data[MAX_OVER_NETWORK];
         memset(data, 0, sizeof(data));
         sprintf(data, "Session %s created", session_id);
-        sprintf(ack_msg, "%d:%d:%s:%s", NS_NACK, strlen(data), session_id, data);
+        sprintf(ack_msg, "%d:%d:%s:%s", NS_ACK, strlen(data), session_id, data);
         send(client_fd, ack_msg, strlen(ack_msg), 0);
         //create session data structure 
         //add socket to session data structure
@@ -187,6 +186,9 @@ int main( int argc, char *argv[] ) {
         exit(1);
     }
     char * serverPortNum = argv[1];
+
+    gethostname(MYHOST, 10);
+
     struct sockaddr_storage client_addr;
     
     socklen_t addr_size;
