@@ -282,7 +282,15 @@ int main( int argc, char *argv[] )
                     perror("client: send1");
                     exit(1);
                 }
-                printf("Sent: %s\n", messageString);
+                //printf("Sent: %s\n", messageString);
+
+                if(loggedIn && command == EXIT){
+                    freeaddrinfo(servinfo);
+                    close(sockfd);
+                    loggedIn = 0;
+                    inSession = 0;
+                    continue;
+                }
 
                 char buffer[1000];
 
@@ -291,7 +299,7 @@ int main( int argc, char *argv[] )
                     exit(1);
                 }
                 buffer[recieveNumBytes] = '\0';
-                printf("Received: %s\n", buffer);
+                //printf("Received: %s\n", buffer);
 
                 struct Message recvMsg;
                 parse_message(buffer, &recvMsg);
@@ -304,11 +312,7 @@ int main( int argc, char *argv[] )
 
                 printAckAndUpdateSession(&recvMsg);
 
-                if(loggedIn && command == EXIT){
-                    freeaddrinfo(servinfo);
-                    close(sockfd);
-                    loggedIn = 0;
-                }
+                
             }
         }
         else{
@@ -374,7 +378,13 @@ int main( int argc, char *argv[] )
             }
             //printf("Sent: %s\n", messageString);
 
-            
+            if(loggedIn && command == EXIT){
+                freeaddrinfo(servinfo);
+                close(sockfd);
+                loggedIn = 0;
+                inSession = 0;
+                continue;
+            }
 
             if ((recieveNumBytes = recv(sockfd, (char *)buffer, 1000, 0)) == -1){
                 perror("client: recv1");
@@ -393,12 +403,6 @@ int main( int argc, char *argv[] )
             }
 
             printAckAndUpdateSession(&recvMsg);
-
-            if(loggedIn && command == EXIT){
-                freeaddrinfo(servinfo);
-                close(sockfd);
-                loggedIn = 0;
-            }
         }
 
     }
