@@ -109,8 +109,12 @@ int messagePopulate(int command,char * theFirst, char * theRest, struct Message 
     }
     else if(command == LEAVE_SESS){
         message->type = LEAVE_SESS;
-        message->size = 0;
-        strcpy(message->data, "");
+        if (theRest == NULL){
+            return 1;
+        }
+        dataLen = strlen(theRest);
+        message->size = dataLen;
+        strcpy(message->data, theRest);
         inSession = 0; //this may not want to be here
     }
     else if(command == QUERY){ //list
@@ -124,6 +128,9 @@ int messagePopulate(int command,char * theFirst, char * theRest, struct Message 
     }
     else if(inSession){
         message->type = MESSAGE;
+        if (strstr(theFirst, "/") == NULL){
+            return 1;
+        }
         dataLen += sprintf(message->data, "%s %s",theFirst, theRest);
         message->size = dataLen; //excluding NULL character
     }
@@ -149,7 +156,7 @@ void printAckAndUpdateSession(struct Message * resp){
         printf("%s\n", resp->data);
     }
     else if(resp->type == NS_ACK){
-        puts("We Created a Sesh\n");
+        puts("We Created that Sesh\n");
         inSession = 1;
     }
     else if(resp->type == NS_NACK){
@@ -159,7 +166,7 @@ void printAckAndUpdateSession(struct Message * resp){
         printf("Session List: \n %s", resp->data);
     }
     else if(resp->type == LS_ACK){
-        puts("We Outta Session\n");
+        puts("We Outta that Session\n");
         inSession = 0;
     }
 }
@@ -215,7 +222,7 @@ int main( int argc, char *argv[] )
                 buffer[recieveNumBytes] = '\0';
                 struct Message recvMsg;
                 parse_message(buffer, &recvMsg);
-                printf("From Conf Session: %s\n", recvMsg.data);
+                printf("From Conf Session %s: %s\n", recvMsg.source,recvMsg.data);
             }
 
             if( FD_ISSET(STDIN_FILENO, &read_fds ))
