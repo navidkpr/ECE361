@@ -16,14 +16,24 @@
 
 char MYHOST[10];
 struct Session {
-    char *id;
+    char id[100];
     int count;
-    struct Session *next;
+    //struct Session *next;
 }; 
 
+struct Client {
+    char user_id[100];
+    int fd;
+    int is_active;
+    struct Session *session;
+};
+
+struct Client *clients[NUM_USERS] = {NULL, NULL, NULL, NULL, NULL};
+
+
 FILE * fPtr;
-const char* users[] = {"Nathan", "Robert", "Navid", "YourMom", "Hamid"};
-const char* pwds[] = {"red", "orange", "yellow", "green", "blue"};
+const char* users[] = {"u1", "u2", "Navid", "YourMom", "Hamid"};
+const char* pwds[] = {"p1", "p2", "yellow", "green", "blue"};
 struct Session *sessions[NUM_USERS] = {NULL, NULL, NULL, NULL, NULL};
 int client_fds[NUM_USERS] = {-1, -1, -1, -1, -1};
 struct Session *head = NULL;
@@ -40,25 +50,50 @@ void command_handler(struct Message* msg, int client_fd){
         for(i = 0; i < NUM_USERS; i++){
             // printf("user: %s\n", users[i]);
             // printf("source: %s\n", msg->source);
-            if(!strcmp(users[i], (char*)msg->source) && !strcmp(pwds[i], (char*)msg->data)){
-                if(is_active[i]){
-                    char* data = "Already logged in";
-                    sprintf(ack_msg, "%d:%d:%s:%s", LO_NACK, strlen(data), msg->source, data);
-                    send(client_fd, ack_msg, strlen(ack_msg), 0);
-                    authorized = true;
-                }else{
-                    client_fds[i] = client_fd;
+            if((strcmp(users[i], (char*)msg->source)==0) && (strcmp(pwds[i], (char*)msg->data)==0)){
+                if(clients[i] == NULL || !clients[i]->is_active){
+                    if(clients[i] == NULL){ 
+                        struct Client *to_add;
+                        to_add = malloc(sizeof(struct Client));
+                        to_add->fd = client_fd;
+                        strcpy(to_add->user_id, users[i]);
+                        to_add->is_active = 1;
+                        to_add->session = NULL;
+                        clients[i] = to_add;
+                    }else{
+                        clients[i]->fd = client_fd;
+                        clients[i]->is_active = 1;
+                    }
                     char* data = " ";
                     sprintf(ack_msg, "%d:%d:%s:%s", LO_ACK, strlen(data), source, data);
                     send(client_fd, ack_msg, strlen(ack_msg), 0);
                     authorized = true;
-                    is_active[i] = 1;
+                    break;
+                }else if(clients[i]->is_active){
+                    char* data = "Already logged in";
+                    sprintf(ack_msg, "%d:%d:%s:%s", LO_NACK, strlen(data), msg->source, data);
+                    send(client_fd, ack_msg, strlen(ack_msg), 0);
+                    authorized = true;
                     break;
                 }
+                // if(is_active[i]){
+                //     char* data = "Already logged in";
+                //     sprintf(ack_msg, "%d:%d:%s:%s", LO_NACK, strlen(data), msg->source, data);
+                //     send(client_fd, ack_msg, strlen(ack_msg), 0);
+                //     authorized = true;
+                // }else{
+                //     client_fds[i] = client_fd;
+                //     char* data = " ";
+                //     sprintf(ack_msg, "%d:%d:%s:%s", LO_ACK, strlen(data), source, data);
+                //     send(client_fd, ack_msg, strlen(ack_msg), 0);
+                //     authorized = true;
+                //     is_active[i] = 1;
+                //     break;
+                // }
             }
             if(authorized) break;
         }
-        if(!authorized && !is_active[i]){
+        if(!authorized && (clients[i] == NULL || !clients[i]->is_active)){
             char* data = "Incorrect login info didiot";
             sprintf(ack_msg, "%d:%d:%s:%s", LO_NACK, strlen(data), source, data);
             send(client_fd, ack_msg, strlen(ack_msg), 0);
@@ -67,22 +102,33 @@ void command_handler(struct Message* msg, int client_fd){
     }else if(type == EXIT){
         //remove client socket from data structure
         char *client_id = msg->source;
-        for (int i = 0; i < NUM_USERS; i++)
+        for (int i = 0; i < NUM_USERS; i++){
             if (strcmp(users[i], client_id) == 0) {
-                is_active[i] = 0;
-                sessions[i] = NULL;
+                clients[i]->is_active = 0;
+                if(clients[i]->session != NULL){
+                    clients[i]->session->count--;
+                    if(clients[i]->session->count == 0){
+                        free(clients[i]->session);
+                        clients[i]->session = NULL;
+                    }
+                }
+                // free(clients[i]);
+                // clients[i] = NULL;
             }
+        }
         close(client_fd);
     }else if(type == JOIN){
-        char *session_id = msg->data;
-        char *client_id = msg->source;
+        char *session_id = (char *)msg->data;
+        char *client_id = (char *)msg->source;
         bool sess_found = false;
 
         int i;
         for(i = 0; i < NUM_USERS; i++){
-            if((sessions[i] != NULL) && (strcmp(session_id, sessions[i]->id) == 0)){
-                sess_found = true;
-                break;
+            if(clients[i] != NULL){
+                if((clients[i]->session != NULL) && (strcmp(session_id, clients[i]->session->id) == 0)){
+                    sess_found = true;
+                    break;
+                }
             }
         }
 
@@ -90,9 +136,10 @@ void command_handler(struct Message* msg, int client_fd){
             struct Session *to_add;
             to_add = malloc(sizeof(struct Session));
             strcpy(to_add->id, session_id);
+            printf("past strcpy in JOIN\n");
             for(i = 0; i < NUM_USERS; i++){
                 if(strcmp(users[i], client_id) == 0){
-                    sessions[i] = to_add;
+                    clients[i]->session = to_add;
                     break;
                 }
             }
@@ -151,8 +198,11 @@ void command_handler(struct Message* msg, int client_fd){
 
         for(i = 0; i < NUM_USERS; i++){
             if(strcmp(users[i], client_id) == 0){
-                if(sessions[i] != NULL){
-                    sessions[i] = NULL;
+                if(clients[i]->session != NULL){
+                    clients[i]->session->count--;
+                    if(clients[i]->session->count == 0){
+                        clients[i]->session = NULL;
+                    }
                     char* data = "Left session";
                     sprintf(ack_msg, "%d:%d:%s:%s", LS_ACK, strlen(data), msg->source, data);
                     send(client_fd, ack_msg, strlen(ack_msg), 0);
@@ -196,19 +246,20 @@ void command_handler(struct Message* msg, int client_fd){
         struct Session *to_add;
         to_add = malloc(sizeof(struct Session));
         strcpy(to_add->id, session_id);
+        printf("past strcpy in NEW_SESS\n");
         to_add->count = 1;
 
         for(i = 0; i < NUM_USERS; i++){
             if(strcmp(users[i], client_id) == 0){
-                if(sessions[i] == NULL){
-                    sessions[i] = to_add;
+                if(clients[i]->session == NULL){
+                    clients[i]->session = to_add;
                     char data[MAX_OVER_NETWORK];
                     memset(data, 0, sizeof(data));
                     sprintf(data, "Session %s created", session_id);
                     sprintf(ack_msg, "%d:%d:%s:%s", NS_ACK, strlen(data), session_id, data);
                     send(client_fd, ack_msg, strlen(ack_msg), 0);
                     break;
-                }else if(strcmp(session_id, sessions[i]->id) == 0){
+                }else if(strcmp(session_id, clients[i]->session->id) == 0){
                     char data[MAX_OVER_NETWORK];
                     memset(data, 0, sizeof(data));
                     sprintf(data, "Session %s already exists", session_id);
@@ -265,11 +316,11 @@ void command_handler(struct Message* msg, int client_fd){
         char data[MAX_OVER_NETWORK];
         memset(data, 0, sizeof(data));
         for (i = 0; i < NUM_USERS; i++){ 
-            if (is_active[i]){
-                if(sessions[i] == NULL){
+            if (clients[i] != NULL && clients[i]->is_active){
+                if(clients[i]->session == NULL){
                     sprintf(data + strlen(data), "%s:No Session\n", users[i]);
                 }else{
-                    sprintf(data + strlen(data), "%s:%s\n", users[i], sessions[i]->id);
+                    sprintf(data + strlen(data), "%s:%s\n", users[i], clients[i]->session->id);
                 }
             }
         }
@@ -283,15 +334,18 @@ void command_handler(struct Message* msg, int client_fd){
 
 
         struct Session *cur_session = NULL;
-        for (i = 0; i < NUM_USERS; i++)
-            if (is_active[i] && strcmp(users[i], client_id) == 0)
-                cur_session = sessions[i];
-        for (i = 0; i < NUM_USERS; i++)
-            if (is_active[i] && (strcmp(sessions[i]->id, cur_session->id)==0)) {
+        for (i = 0; i < NUM_USERS; i++){
+            if (clients[i] != NULL && clients[i]->is_active && strcmp(users[i], client_id) == 0){
+                cur_session = clients[i]->session;
+            }
+        }
+        for (i = 0; i < NUM_USERS; i++){
+            if (clients[i] != NULL && clients[i]->is_active  && (strcmp(clients[i]->session->id, cur_session->id)==0)) {
                 sprintf(ack_msg, "%d:%d:%s:%s", MESSAGE, strlen(msg->data), source, msg->data);
-                send(client_fds[i], ack_msg, strlen(ack_msg), 0);
+                send(clients[i]->fd, ack_msg, strlen(ack_msg), 0);
                 //send the message to this client
             } 
+        }
     }
 }
 
@@ -361,8 +415,8 @@ int main( int argc, char *argv[] ) {
 
 
         for(int i = 0; i < NUM_USERS; i++){ 
-            if(is_active[i]){ 
-                int s_fd = client_fds[i];
+            if(clients[i] != NULL && clients[i]->is_active){ 
+                int s_fd = clients[i]->fd;
                 if(s_fd > 0)
                     FD_SET(s_fd, &sock_set);
                 
@@ -401,7 +455,10 @@ int main( int argc, char *argv[] ) {
         }else{
 
             for(int i = 0; i < NUM_USERS; i++){
-                int s_fd = client_fds[i];
+                int s_fd = -1;
+                if(clients[i] != NULL){
+                    s_fd = clients[i]->fd;
+                }
 
                 if(FD_ISSET(s_fd, &sock_set)){
                     //printf("%d\n",s_fd);
