@@ -131,8 +131,10 @@ int messagePopulate(int command,char * theFirst, char * theRest, struct Message 
         if (strstr(theFirst, "/") == NULL){
             return 1;
         }
-        dataLen += sprintf(message->data, "%s %s",theFirst, theRest);
-        message->size = dataLen; //excluding NULL character
+        memmove(theFirst, theFirst+1, strlen(theFirst));
+        dataLen += sprintf(message->data, "%s %s",theFirst, theRest); 
+        message->size = dataLen;//excluding NULL character
+
     }
     else{
         return 2;
@@ -163,7 +165,7 @@ void printAckAndUpdateSession(struct Message * resp){
         printf("%s\n", resp->data);
     }
     else if(resp->type == QU_ACK){
-        printf("Session List: \n %s", resp->data);
+        printf("Session List: \n%s", resp->data);
     }
     else if(resp->type == LS_ACK){
         puts("We Outta that Session\n");

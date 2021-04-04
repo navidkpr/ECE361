@@ -11,6 +11,7 @@
 
 #define BACKLOG 10 
 #define NUM_USERS 5
+#define MAX_SESSIONS 3
 
 #include "message.h"
 
@@ -24,8 +25,9 @@ struct Session {
 struct Client {
     char user_id[100];
     int fd;
-    int is_active;
-    struct Session *session;
+    bool is_active;
+    bool has_sessions;
+    struct Session *sessions[MAX_SESSIONS];
 };
 
 struct Client *clients[NUM_USERS] = {NULL, NULL, NULL, NULL, NULL};
@@ -34,16 +36,17 @@ struct Client *clients[NUM_USERS] = {NULL, NULL, NULL, NULL, NULL};
 FILE * fPtr;
 const char* users[] = {"u1", "u2", "Navid", "YourMom", "Hamid"};
 const char* pwds[] = {"p1", "p2", "yellow", "green", "blue"};
-struct Session *sessions[NUM_USERS] = {NULL, NULL, NULL, NULL, NULL};
-int client_fds[NUM_USERS] = {-1, -1, -1, -1, -1};
-struct Session *head = NULL;
-int is_active[] = {0, 0, 0, 0, 0};
+//struct Session *sessions[NUM_USERS] = {NULL, NULL, NULL, NULL, NULL};
+//int client_fds[NUM_USERS] = {-1, -1, -1, -1, -1};
+//struct Session *head = NULL;
+//int is_active[] = {0, 0, 0, 0, 0};
 
 void command_handler(struct Message* msg, int client_fd){
     int type = msg->type;
     char ack_msg[MAX_OVER_NETWORK];
     memset(ack_msg,0,sizeof(ack_msg));
     char* source = "Server";
+    char from[100];
     bool authorized = false;
     int i;
     if(type == LOGIN){
@@ -57,12 +60,16 @@ void command_handler(struct Message* msg, int client_fd){
                         to_add = malloc(sizeof(struct Client));
                         to_add->fd = client_fd;
                         strcpy(to_add->user_id, users[i]);
-                        to_add->is_active = 1;
-                        to_add->session = NULL;
+                        to_add->is_active = true;
+                        to_add->has_sessions = false;
+                        for(int j = 0; j < MAX_SESSIONS; j++){
+                            to_add->sessions[j] = NULL;
+                        }
+                        // to_add->session = NULL;
                         clients[i] = to_add;
                     }else{
                         clients[i]->fd = client_fd;
-                        clients[i]->is_active = 1;
+                        clients[i]->is_active = true;
                     }
                     char* data = " ";
                     sprintf(ack_msg, "%d:%d:%s:%s", LO_ACK, strlen(data), source, data);
@@ -76,20 +83,6 @@ void command_handler(struct Message* msg, int client_fd){
                     authorized = true;
                     break;
                 }
-                // if(is_active[i]){
-                //     char* data = "Already logged in";
-                //     sprintf(ack_msg, "%d:%d:%s:%s", LO_NACK, strlen(data), msg->source, data);
-                //     send(client_fd, ack_msg, strlen(ack_msg), 0);
-                //     authorized = true;
-                // }else{
-                //     client_fds[i] = client_fd;
-                //     char* data = " ";
-                //     sprintf(ack_msg, "%d:%d:%s:%s", LO_ACK, strlen(data), source, data);
-                //     send(client_fd, ack_msg, strlen(ack_msg), 0);
-                //     authorized = true;
-                //     is_active[i] = 1;
-                //     break;
-                // }
             }
             if(authorized) break;
         }
@@ -104,12 +97,12 @@ void command_handler(struct Message* msg, int client_fd){
         char *client_id = msg->source;
         for (int i = 0; i < NUM_USERS; i++){
             if (strcmp(users[i], client_id) == 0) {
-                clients[i]->is_active = 0;
-                if(clients[i]->session != NULL){
-                    clients[i]->session->count--;
-                    if(clients[i]->session->count == 0){
-                        free(clients[i]->session);
-                        clients[i]->session = NULL;
+                clients[i]->is_active = false;
+                if(clients[i]->has_sessions){
+                    for(int j = 0; j < MAX_SESSIONS; j++){
+                        if(clients[i]->sessions[j] != NULL){
+                            clients[i]->sessions[j] = NULL;
+                        }
                     }
                 }
                 // free(clients[i]);
@@ -125,9 +118,11 @@ void command_handler(struct Message* msg, int client_fd){
         int i;
         for(i = 0; i < NUM_USERS; i++){
             if(clients[i] != NULL){
-                if((clients[i]->session != NULL) && (strcmp(session_id, clients[i]->session->id) == 0)){
-                    sess_found = true;
-                    break;
+                for(int j = 0; j < MAX_SESSIONS; j++){
+                    if((clients[i]->has_sessions) && (clients[i]->sessions[j] != NULL && strcmp(session_id, clients[i]->sessions[j]->id) == 0)){
+                        sess_found = true;
+                        break;
+                    }
                 }
             }
         }
@@ -136,10 +131,15 @@ void command_handler(struct Message* msg, int client_fd){
             struct Session *to_add;
             to_add = malloc(sizeof(struct Session));
             strcpy(to_add->id, session_id);
-            printf("past strcpy in JOIN\n");
             for(i = 0; i < NUM_USERS; i++){
                 if(strcmp(users[i], client_id) == 0){
-                    clients[i]->session = to_add;
+                    for(int j = 0; j < MAX_SESSIONS; j++){
+                        if(clients[i]->sessions[j] == NULL){
+                            clients[i]->sessions[j] = to_add;
+                            clients[i]->has_sessions = true;
+                            break;
+                        }
+                    }
                     break;
                 }
             }
@@ -157,51 +157,18 @@ void command_handler(struct Message* msg, int client_fd){
             send(client_fd, ack_msg, strlen(ack_msg), 0);
             printf("Session not found\n");
         }
-        
-
-
-        // struct Session *cur = head;
-        // int isFound = 0;
-        // while (cur != NULL) {
-        //     if (strcmp(session_id, cur->id) == 0) {
-        //         for (i = 0; i < NUM_USERS; i++){ 
-        //             if (strcmp(users[i], client_id) == 0){ 
-        //                 sessions[i] = cur;
-        //                 cur->count++;
-        //             }
-        //         }
-        //         isFound = 1;
-        //         char data[MAX_OVER_NETWORK];
-        //         memset(data, 0, sizeof(data));
-        //         sprintf(data, "Session %s joined", session_id);
-        //         sprintf(ack_msg, "%d:%d:%s:%s", JN_ACK, strlen(data), session_id, data);
-        //         send(client_fd, ack_msg, strlen(ack_msg), 0);
-        //         printf("Session joined\n");
-                
-        //     }
-        //     cur = cur->next;
-        // }
-        // if (!isFound) {
-        //     char data[MAX_OVER_NETWORK];
-        //     memset(data, 0, sizeof(data));
-        //     sprintf(data, "Session %s not found", session_id);
-        //     sprintf(ack_msg, "%d:%d:%s:%s", JN_NACK, strlen(data), session_id, data);
-        //     send(client_fd, ack_msg, strlen(ack_msg), 0);
-        //     printf("Session not found\n");
-
-        
-
     }else if(type == LEAVE_SESS){
         char *client_id = msg->source;
-        struct Session *cur = head;
-        struct Session *prev = head;
+        char *session_id = msg->data;
 
-        for(i = 0; i < NUM_USERS; i++){
+        for(i = 0; i < NUM_USERS; i++){ //still gotta do what i do
             if(strcmp(users[i], client_id) == 0){
-                if(clients[i]->session != NULL){
-                    clients[i]->session->count--;
-                    if(clients[i]->session->count == 0){
-                        clients[i]->session = NULL;
+                if(clients[i]->has_sessions){
+                    for(int j = 0; j < MAX_SESSIONS; j++){
+                        if(clients[i]->sessions[j] != NULL && strcmp(clients[i]->sessions[j]->id, session_id) == 0){
+                            clients[i]->sessions[j] = NULL;
+                            break;
+                        }
                     }
                     char* data = "Left session";
                     sprintf(ack_msg, "%d:%d:%s:%s", LS_ACK, strlen(data), msg->source, data);
@@ -210,117 +177,88 @@ void command_handler(struct Message* msg, int client_fd){
                 }
             }
         }
-
-
-        // for (i = 0; i < NUM_USERS; i++){ 
-        //     if (strcmp(client_id, users[i]) == 0){ 
-        //         while(cur != NULL){
-        //             if((sessions[i] != NULL) && (!strcmp(sessions[i]->id, cur->id))){
-        //                 cur->count--;
-        //                 break;
-        //             }
-        //             prev = cur;
-        //             cur = cur->next;
-        //         }
-        //         sessions[i] = NULL;
-        //     }
-        // }
-        // if(cur != NULL && cur->count <= 0){
-        //     prev->next = cur->next;
-        //     cur = NULL;
-        // }
-        // char* data = "Left session";
-        // sprintf(ack_msg, "%d:%d:%s:%s", LS_ACK, strlen(data), msg->source, data);
-        // send(client_fd, ack_msg, strlen(ack_msg), 0);
-        // //remove socket from session data structure
-        ;
     }else if(type == NEW_SESS){
         //puts("We made it boise\n");
         char *session_id = (char *)msg->data;
         char *client_id = (char *)msg->source;
-
-        struct Session *pre = NULL;
-        struct Session *cur = head;
         int i;
+        int j;
+        int empty = -1;
+        bool sess_found = false;
 
         struct Session *to_add;
         to_add = malloc(sizeof(struct Session));
         strcpy(to_add->id, session_id);
-        printf("past strcpy in NEW_SESS\n");
         to_add->count = 1;
 
         for(i = 0; i < NUM_USERS; i++){
             if(strcmp(users[i], client_id) == 0){
-                if(clients[i]->session == NULL){
-                    clients[i]->session = to_add;
+                if(clients[i] != NULL && clients[i]->has_sessions){
+                    for(j = 0; j < MAX_SESSIONS; j++){
+                        if(clients[i]->sessions[j] == NULL){
+                            if(empty == -1){
+                                empty = j;
+                            }
+                        }else if(strcmp(clients[i]->sessions[j]->id, session_id) == 0){
+                            sess_found = true;
+                        }
+                    }
+                    if(!sess_found){
+                        if(empty == -1){
+                            char data[MAX_OVER_NETWORK];
+                            memset(data, 0, sizeof(data));
+                            sprintf(data, "Hotboxed\n", session_id);
+                            sprintf(ack_msg, "%d:%d:%s:%s", NS_NACK, strlen(data), session_id, data);
+                            send(client_fd, ack_msg, strlen(ack_msg), 0);
+                            break;
+                        }
+                        clients[i]->has_sessions = true;
+                        clients[i]->sessions[empty] = to_add;
+                        char data[MAX_OVER_NETWORK];
+                        memset(data, 0, sizeof(data));
+                        sprintf(data, "Session %s created", session_id);
+                        sprintf(ack_msg, "%d:%d:%s:%s", NS_ACK, strlen(data), session_id, data);
+                        send(client_fd, ack_msg, strlen(ack_msg), 0);
+                        break;
+                    }else if(sess_found){
+                        char data[MAX_OVER_NETWORK];
+                        memset(data, 0, sizeof(data));
+                        sprintf(data, "Session %s already exists", session_id);
+                        sprintf(ack_msg, "%d:%d:%s:%s", NS_NACK, strlen(data), session_id, data);
+                        send(client_fd, ack_msg, strlen(ack_msg), 0);
+                        break;
+                    }
+                }
+                else if(!clients[i]->has_sessions){
+                    clients[i]->has_sessions = true;
+                    clients[i]->sessions[0] = to_add;
                     char data[MAX_OVER_NETWORK];
                     memset(data, 0, sizeof(data));
                     sprintf(data, "Session %s created", session_id);
                     sprintf(ack_msg, "%d:%d:%s:%s", NS_ACK, strlen(data), session_id, data);
                     send(client_fd, ack_msg, strlen(ack_msg), 0);
                     break;
-                }else if(strcmp(session_id, clients[i]->session->id) == 0){
-                    char data[MAX_OVER_NETWORK];
-                    memset(data, 0, sizeof(data));
-                    sprintf(data, "Session %s already exists", session_id);
-                    sprintf(ack_msg, "%d:%d:%s:%s", NS_NACK, strlen(data), session_id, data);
-                    send(client_fd, ack_msg, strlen(ack_msg), 0);
-                    break;
                 }
             }
         }
-
-        // //puts("check - 2\n"); 
-        // while (cur != NULL) {
-        //     if (strcmp(session_id, cur->id) == 0) {
-        //         char data[MAX_OVER_NETWORK];
-        //         memset(data, 0, sizeof(data));
-        //         sprintf(data, "Session %s already exists", session_id);
-        //         sprintf(ack_msg, "%d:%d:%s:%s", NS_NACK, strlen(data), session_id, data);
-        //         send(client_fd, ack_msg, strlen(ack_msg), 0);
-        //     }
-        //     pre = cur;
-        //     cur = cur->next;
-        // }
-        // //puts("check - 3\n");
-        // if (head == NULL){
-        //     head = malloc(sizeof(struct Session));
-        //     strcpy(head->id, session_id);
-        //     head->next = NULL;
-        //     head->count++;
-            
-        //     for (i = 0; i < NUM_USERS; i++)
-        //         if (strcmp(client_id, users[i]) == 0)
-        //             sessions[i] = head;
-        // }
-        // else{
-        //     pre->next = malloc(sizeof(struct Session));
-        //     strcpy(pre->next->id, session_id);
-        //     pre->next->count++;
-        //     for (i = 0; i < NUM_USERS; i++)
-        //         if (strcmp(client_id, users[i]) == 0)
-        //             sessions[i] = pre->next;
-
-        //     pre->next->next = NULL;
-        // }
-
-        // char data[MAX_OVER_NETWORK];
-        // memset(data, 0, sizeof(data));
-        // sprintf(data, "Session %s created", session_id);
-        // sprintf(ack_msg, "%d:%d:%s:%s", NS_ACK, strlen(data), session_id, data);
-        // send(client_fd, ack_msg, strlen(ack_msg), 0);
-        // printf("Session created\n");
-        // //create session data structure 
-        // //add socket to session data structure
     }else if(type == QUERY){
         char data[MAX_OVER_NETWORK];
         memset(data, 0, sizeof(data));
+        int cnt_sessions = 0;
         for (i = 0; i < NUM_USERS; i++){ 
             if (clients[i] != NULL && clients[i]->is_active){
-                if(clients[i]->session == NULL){
-                    sprintf(data + strlen(data), "%s:No Session\n", users[i]);
+                cnt_sessions = 0;
+                sprintf(data + strlen(data), "%s:", users[i]);
+                for(int j = 0; j < MAX_SESSIONS; j++){
+                    if(clients[i]->sessions[j] != NULL){
+                        cnt_sessions++;
+                        sprintf(data + strlen(data), "%s,", clients[i]->sessions[j]->id);
+                    }
+                }
+                if(cnt_sessions == 0){
+                    sprintf(data + strlen(data), "No Sessions\n");
                 }else{
-                    sprintf(data + strlen(data), "%s:%s\n", users[i], clients[i]->session->id);
+                    sprintf(data + strlen(data), "\n");
                 }
             }
         }
@@ -331,20 +269,35 @@ void command_handler(struct Message* msg, int client_fd){
         //loop through sockets in specified conference session sending the message
         //TODO: Need to check if in a session
         char *client_id = msg->source;
-
+        char inputPre[strlen(msg->data)];
+        strcpy(inputPre, msg->data);
+        char *session_id = strtok(inputPre, " ");
+        char *msg_data = inputPre + strlen(inputPre) + 1; //to find theRest
 
         struct Session *cur_session = NULL;
+        bool sess_found = false;
         for (i = 0; i < NUM_USERS; i++){
             if (clients[i] != NULL && clients[i]->is_active && strcmp(users[i], client_id) == 0){
-                cur_session = clients[i]->session;
+                for(int j = 0; j < MAX_SESSIONS; j++){
+                    if(strcmp(clients[i]->sessions[j]->id, session_id) == 0){
+                        cur_session = clients[i]->sessions[j];
+                        sess_found = true;
+                        break;
+                    }
+                }
             }
+            if(sess_found) break;
         }
         for (i = 0; i < NUM_USERS; i++){
-            if (clients[i] != NULL && clients[i]->is_active  && (strcmp(clients[i]->session->id, cur_session->id)==0)) {
-                sprintf(ack_msg, "%d:%d:%s:%s", MESSAGE, strlen(msg->data), source, msg->data);
-                send(clients[i]->fd, ack_msg, strlen(ack_msg), 0);
-                //send the message to this client
-            } 
+            for(int j = 0; j < MAX_SESSIONS; j++){
+                if (clients[i] != NULL && clients[i]->is_active  && (clients[i]->sessions[j] != NULL && strcmp(clients[i]->sessions[j]->id, cur_session->id)==0)) {
+                    strcpy(from, cur_session->id);
+                    sprintf(ack_msg, "%d:%d:%s:%s", MESSAGE, strlen(msg_data), from, msg_data);
+                    send(clients[i]->fd, ack_msg, strlen(ack_msg), 0);
+                    break;
+                    //send the message to this client
+                } 
+            }
         }
     }
 }
