@@ -9,21 +9,23 @@
 #include <netdb.h>
 #include <stdbool.h>
 
+#define MAX_ID 100
+#define MAX_HOST 10
 #define BACKLOG 10 
 #define NUM_USERS 5
 #define MAX_SESSIONS 3
 
 #include "message.h"
 
-char MYHOST[10];
+char MYHOST[MAX_HOST];
 struct Session {
-    char id[100];
+    char id[MAX_ID];
     int count;
     //struct Session *next;
 }; 
 
 struct Client {
-    char user_id[100];
+    char user_id[MAX_ID];
     int fd;
     bool is_active;
     bool has_sessions;
