@@ -8,12 +8,14 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <stdbool.h>
+#include <time.h>
 
 #define MAX_ID 100
 #define MAX_HOST 10
 #define BACKLOG 10 
 #define NUM_USERS 5
 #define MAX_SESSIONS 3
+#define SOCKET_TIMEOUT 60
 
 #include "message.h"
 
@@ -30,6 +32,7 @@ struct Client {
     bool is_active;
     bool has_sessions;
     struct Session *sessions[MAX_SESSIONS];
+    time_t to_start;
 };
 
 struct Client *clients[NUM_USERS] = {NULL, NULL, NULL, NULL, NULL};
@@ -73,6 +76,7 @@ void command_handler(struct Message* msg, int client_fd){
                         clients[i]->fd = client_fd;
                         clients[i]->is_active = true;
                     }
+                    clients[i]->to_start = time(NULL);
                     char* data = " ";
                     sprintf(ack_msg, "%d:%d:%s:%s", LO_ACK, strlen(data), source, data);
                     send(client_fd, ack_msg, strlen(ack_msg), 0);
@@ -363,8 +367,13 @@ int main( int argc, char *argv[] ) {
     addr_size = sizeof client_addr;
     int max_sd = serv_fd;
 
+    
+
     while (!isDone) {
-        
+        struct timeval timeout;
+        timeout.tv_sec = SOCKET_TIMEOUT;
+        timeout.tv_usec = 0;
+
         FD_ZERO(&sock_set);
         FD_SET(serv_fd, &sock_set);
 
@@ -380,7 +389,11 @@ int main( int argc, char *argv[] ) {
             }
         }
 
-        if(select(max_sd+1, &sock_set, NULL, NULL, NULL) < 0){
+        int sel_return = select(max_sd+1, &sock_set, NULL, NULL, &timeout);
+        if (sel_return == 0){
+            //puts("YOU timed out");
+        }
+        else if(sel_return < 0){
             perror("Error selecting socket:");
             return -1;
         }
@@ -392,10 +405,10 @@ int main( int argc, char *argv[] ) {
                 perror("Error accepting new connection:");
                 return -1;
             }
-            printf("Connection accepted\n");
+            printf("Connection accepted\n"); 
 
             rec_num_bytes = recv(new_fd, message_str, MAX_OVER_NETWORK, 0);
-            if(rec_num_bytes == -1){
+            if(rec_num_bytes < 0){
                 perror("Error receiving message:");
                 return -1;
             }
@@ -408,18 +421,23 @@ int main( int argc, char *argv[] ) {
 
             command_handler(&msg, new_fd);
         }else{
-
             for(int i = 0; i < NUM_USERS; i++){
                 int s_fd = -1;
-                if(clients[i] != NULL){
+                clock_t to_end;
+                int time_passed;
+                if(clients[i] != NULL && clients[i]->is_active){
                     s_fd = clients[i]->fd;
+                    to_end = time(NULL);
+                    time_passed = to_end - clients[i]->to_start;
+                    printf("This socket %s this much time pass: %d\n", clients[i]->user_id,time_passed);
                 }
 
                 if(FD_ISSET(s_fd, &sock_set)){
                     //printf("%d\n",s_fd);
                     rec_num_bytes = recv(s_fd, message_str, MAX_OVER_NETWORK, 0);
-                
-                    if(rec_num_bytes == -1){
+                    clients[i]->to_start = time(NULL);
+                    time_passed = 0;
+                    if(rec_num_bytes < 0){
                         perror("Error receiving message:");
                         return -1;
                     }
@@ -430,6 +448,19 @@ int main( int argc, char *argv[] ) {
                     parse_message(message_str, &msg);
 
                     command_handler(&msg, s_fd);
+                }
+
+                if (time_passed >= SOCKET_TIMEOUT){
+                    time_passed = 0;
+                    struct Message fake_msg;
+                    fake_msg.type = EXIT;
+                    fake_msg.size = 0;
+                    strcpy(fake_msg.source, clients[i]->user_id);
+                    strcpy(fake_msg.data, "");
+                    char ack_msg[MAX_OVER_NETWORK];
+                    sprintf(ack_msg, "%d:%d:%s:%s", fake_msg.type, fake_msg.size , "SERVER", fake_msg.data);
+                    send(s_fd, ack_msg, strlen(ack_msg), 0);
+                    command_handler(&fake_msg, s_fd);
                 }
                 
             }

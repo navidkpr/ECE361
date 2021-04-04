@@ -1,6 +1,5 @@
 #ifndef _MESSAGE_H_
 #define _MESSAGE_H_
-//
 #define MAX_NAME 25
 #define MAX_DATA 500
 #define MAX_OVER_NETWORK 600

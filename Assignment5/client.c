@@ -16,27 +16,6 @@ char serverPortNum[100];
 int loggedIn, inSession;
 
 
-// int recvtimeout(int s, char *buf, int len, struct addrinfo * servinfo, int timeout)
-// {
-//     fd_set fds;
-//     int n;
-//     struct timeval tv;
-//     // set up the file descriptor set
-//     FD_ZERO(&fds);
-//     FD_SET(s, &fds);
-//     // set up the struct timeval for the timeout
-//     tv.tv_sec = 0;
-//     tv.tv_usec = timeout;
-//     // wait until timeout or data received
-//     n = select(s+1, &fds, NULL, NULL, &tv);
-//     if (n == 0) return -2; // timeout!
-//     if (n == -1) return -1; // error
-//     // data must be here, so do a normal recv()
-//     return recvfrom(s, (char *)buf, len,  
-//                     0, servinfo->ai_addr, 
-//                     &servinfo->ai_addrlen);
-// }
-
 int checkCommand(char * command){
     if (strcmp(command, "/login") == 0){
         return LOGIN;
@@ -178,7 +157,7 @@ int main( int argc, char *argv[] )
     inSession = 0;
     int quit = 0;
 
-    int sockfd;
+    int sockfd = -1;
     struct addrinfo hints, *servinfo;
     int rv;
     int sendNumBytes;
@@ -198,132 +177,51 @@ int main( int argc, char *argv[] )
         struct Message message;
         char inputPre[500];
 
-        if (inSession > 0){
-            int fd_max = STDIN_FILENO;
+        int fd_max = STDIN_FILENO;
 
-            /* Set the bits for the file descriptors you want to wait on. */
-            FD_ZERO(&read_fds);
-            FD_SET(STDIN_FILENO, &read_fds);
+        /* Set the bits for the file descriptors you want to wait on. */
+        FD_ZERO(&read_fds);
+        FD_SET(STDIN_FILENO, &read_fds);
+        if (sockfd != -1){
             FD_SET(sockfd, &read_fds);
+        }
+        
+        if( sockfd > fd_max ) { fd_max = sockfd; }
 
-            if( sockfd > fd_max ) { fd_max = sockfd; }
-
-            if (select(fd_max + 1, &read_fds, NULL, NULL, NULL) == -1)
-            {
-                perror("select:");
+        if (select(fd_max + 1, &read_fds, NULL, NULL, NULL) == -1)
+        {
+            perror("select:");
+            exit(1);
+        }
+        if( FD_ISSET(sockfd, &read_fds) )
+        {
+            /* There is data waiting on your socket.  Read it with recv(). */
+            if ((recieveNumBytes = recv(sockfd, (char *)buffer, 1000, 0)) == -1){
+                perror("client: recv1");
                 exit(1);
             }
-            if( FD_ISSET(sockfd, &read_fds) )
-            {
-                /* There is data waiting on your socket.  Read it with recv(). */
-                if ((recieveNumBytes = recv(sockfd, (char *)buffer, 1000, 0)) == -1){
-                    perror("client: recv1");
-                    exit(1);
-                }
-                buffer[recieveNumBytes] = '\0';
-                struct Message recvMsg;
-                parse_message(buffer, &recvMsg);
+            buffer[recieveNumBytes] = '\0';
+            struct Message recvMsg;
+            parse_message(buffer, &recvMsg);
+            if (recvMsg.type == EXIT){
+                puts("Timed out BOI");
+                freeaddrinfo(servinfo);
+                close(sockfd);
+                sockfd = -1;
+                loggedIn = 0;
+                inSession = 0;
+                continue;
+            }
+            else{
                 printf("From Conf Session %s: %s\n", recvMsg.source,recvMsg.data);
             }
-
-            if( FD_ISSET(STDIN_FILENO, &read_fds ))
-            {
-                /* The user typed something.  Read it fgets or something.
-                Then send the data to the server. */
-                fgets(inputPre, sizeof(inputPre), stdin);
-                char * inputPost = strtok(inputPre, "\n");
-                char * firstWord = strtok(inputPost, " ");
-                inputPost = inputPost + strlen(inputPost) + 1; //to find theRest
-                
-                int command = checkCommand(firstWord);
-                if (command == -1 && !loggedIn){
-                    break;
-                }
-                else if (command == -1 && loggedIn){
-                    quit = 1;
-                }
-
-                
-                err = messagePopulate(command, firstWord, inputPost, &message);
-                if (err){
-                    if (err == 1){
-                        puts("BRODY, U DONE GOOFED WIT DA COMMAND, TRY AGAIN\n");
-                    }
-                    else if (err == 2){
-                        puts("class is not in SESSION, u can't send dis\n");
-                    }
-                    
-                    continue;
-                }
-
-                //-----------------------------------------------------------------------------------------------------------
-
-                if (!loggedIn && command == LOGIN){
-                    if ((rv = getaddrinfo(serverAddress, serverPortNum, &hints, &servinfo)) != 0) {
-                        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-                        return 1;
-                    }
-                    
-                    sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
-                    if(sockfd < 0){
-                        perror("Error while creating socket\n");
-                        return -1;
-                    }
-                    //printf("Socket created successfully\n");
-
-                    if(connect(sockfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1){
-                        close(sockfd);
-                        perror("Error connecting to socket\n");
-                    }
-                    //printf("Connection successful\n");
-                    loggedIn = 1;
-                }
-                
-
-                
-                
-                char messageString[MAX_OVER_NETWORK];
-                memset(messageString,0,sizeof(messageString));
-                sprintf(messageString, "%d:%d:%s:%s", message.type, message.size, message.source, message.data);
-
-                if ((sendNumBytes = send(sockfd, messageString, strlen(messageString), 0) == -1)) {
-                    perror("client: send1");
-                    exit(1);
-                }
-                //printf("Sent: %s\n", messageString);
-
-                if(loggedIn && command == EXIT){
-                    freeaddrinfo(servinfo);
-                    close(sockfd);
-                    loggedIn = 0;
-                    inSession = 0;
-                    continue;
-                }
-
-                char buffer[1000];
-
-                if ((recieveNumBytes = recv(sockfd, (char *)buffer, 1000, 0)) == -1){
-                    perror("client: recv1");
-                    exit(1);
-                }
-                buffer[recieveNumBytes] = '\0';
-                //printf("Received: %s\n", buffer);
-
-                struct Message recvMsg;
-                parse_message(buffer, &recvMsg);
-
-                if (recvMsg.type == LO_NACK){ //would i close something already closed??
-                    freeaddrinfo(servinfo);
-                    close(sockfd);
-                    loggedIn = 0;
-                }
-
-                printAckAndUpdateSession(&recvMsg);
-
-                
-            }
+            
         }
-        else{
+
+        if( FD_ISSET(STDIN_FILENO, &read_fds ))
+        {
+            /* The user typed something.  Read it fgets or something.
+            Then send the data to the server. */
             fgets(inputPre, sizeof(inputPre), stdin);
             char * inputPost = strtok(inputPre, "\n");
             char * firstWord = strtok(inputPost, " ");
@@ -367,6 +265,7 @@ int main( int argc, char *argv[] )
 
                 if(connect(sockfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1){
                     close(sockfd);
+                    sockfd = -1;
                     perror("Error connecting to socket\n");
                 }
                 //printf("Connection successful\n");
@@ -389,10 +288,13 @@ int main( int argc, char *argv[] )
             if(loggedIn && command == EXIT){
                 freeaddrinfo(servinfo);
                 close(sockfd);
+                sockfd = -1;
                 loggedIn = 0;
                 inSession = 0;
                 continue;
             }
+
+            char buffer[1000];
 
             if ((recieveNumBytes = recv(sockfd, (char *)buffer, 1000, 0)) == -1){
                 perror("client: recv1");
@@ -407,10 +309,13 @@ int main( int argc, char *argv[] )
             if (recvMsg.type == LO_NACK){ //would i close something already closed??
                 freeaddrinfo(servinfo);
                 close(sockfd);
+                sockfd = -1;
                 loggedIn = 0;
             }
 
             printAckAndUpdateSession(&recvMsg);
+
+            
         }
 
     }
