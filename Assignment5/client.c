@@ -115,7 +115,6 @@ int messagePopulate(int command,char * theFirst, char * theRest, struct Message 
         dataLen = strlen(theRest);
         message->size = dataLen;
         strcpy(message->data, theRest);
-        inSession = 0; //this may not want to be here
     }
     else if(command == QUERY){ //list
         message->type = QUERY;
@@ -126,7 +125,7 @@ int messagePopulate(int command,char * theFirst, char * theRest, struct Message 
     else if(command == -1){ //quit
         message->type = -1;
     }
-    else if(inSession){
+    else if(inSession > 0){
         message->type = MESSAGE;
         if (strstr(theFirst, "/") == NULL){
             return 1;
@@ -152,14 +151,14 @@ void printAckAndUpdateSession(struct Message * resp){
     }
     else if(resp->type == JN_ACK){
         puts("We Joined\n");
-        inSession = 1;
+        inSession += 1;
     }
     else if(resp->type == JN_NACK){
         printf("%s\n", resp->data);
     }
     else if(resp->type == NS_ACK){
         puts("We Created that Sesh\n");
-        inSession = 1;
+        inSession = +1;
     }
     else if(resp->type == NS_NACK){
         printf("%s\n", resp->data);
@@ -169,7 +168,7 @@ void printAckAndUpdateSession(struct Message * resp){
     }
     else if(resp->type == LS_ACK){
         puts("We Outta that Session\n");
-        inSession = 0;
+        inSession -= 1;
     }
 }
 
@@ -199,7 +198,7 @@ int main( int argc, char *argv[] )
         struct Message message;
         char inputPre[500];
 
-        if (inSession){
+        if (inSession > 0){
             int fd_max = STDIN_FILENO;
 
             /* Set the bits for the file descriptors you want to wait on. */
