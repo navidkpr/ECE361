@@ -148,6 +148,8 @@ void printAckAndUpdateSession(struct Message * resp){
     else if(resp->type == LS_ACK){
         puts("We Outta that Session\n");
         inSession -= 1;
+    }else if(resp->type == MESSAGE_NACK){
+        puts("Not in session");
     }
 }
 
@@ -203,6 +205,7 @@ int main( int argc, char *argv[] )
             buffer[recieveNumBytes] = '\0';
             struct Message recvMsg;
             parse_message(buffer, &recvMsg);
+            printf("%d", recvMsg.type);
             if (recvMsg.type == EXIT){
                 puts("Timed out BOI");
                 freeaddrinfo(servinfo);
@@ -211,8 +214,7 @@ int main( int argc, char *argv[] )
                 loggedIn = 0;
                 inSession = 0;
                 continue;
-            }
-            else{
+            }else{
                 printf("From Conf Session %s: %s\n", recvMsg.source,recvMsg.data);
             }
             

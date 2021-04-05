@@ -11,7 +11,7 @@ struct Message {
     unsigned char data[MAX_DATA];
 };
 
-enum MessageType{LOGIN, LO_ACK, LO_NACK, EXIT, JOIN, JN_ACK, JN_NACK, LEAVE_SESS, NEW_SESS, NS_ACK, NS_NACK, MESSAGE, QUERY, QU_ACK, LS_ACK, LS_NACK};
+enum MessageType{LOGIN, LO_ACK, LO_NACK, EXIT, JOIN, JN_ACK, JN_NACK, LEAVE_SESS, NEW_SESS, NS_ACK, NS_NACK, MESSAGE, QUERY, QU_ACK, LS_ACK, LS_NACK, MESSAGE_NACK};
 
 void parse_message(char *str, struct Message* msg);
 
