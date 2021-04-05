@@ -1,0 +1,14 @@
+Design Doc
+
+Features:
+1. Multiple Sessions
+    Modify the Client data structure on the server to know hold an array of session structures instead of just a single variable
+    Error check with respect to which clients are in which session
+
+    
+2. Client Inactivity Timeout on the Server
+    Add a start time value to the client data structure on the server
+    Add a timeout to the select on the server so that the server doesn't block forever and can compute inactivity time for active clients
+    Every time select returns compute time passed for all active clients
+    If a client's time passed is longer than the expiration time, send a notification to the client, and logout the client
+

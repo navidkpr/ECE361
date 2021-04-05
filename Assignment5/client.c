@@ -205,8 +205,7 @@ int main( int argc, char *argv[] )
             buffer[recieveNumBytes] = '\0';
             struct Message recvMsg;
             parse_message(buffer, &recvMsg);
-            printf("%d", recvMsg.type);
-            if (recvMsg.type == EXIT){
+            if (recvMsg.type == EXIT){ //Time out notification
                 puts("Timed out BOI");
                 freeaddrinfo(servinfo);
                 close(sockfd);
@@ -214,15 +213,16 @@ int main( int argc, char *argv[] )
                 loggedIn = 0;
                 inSession = 0;
                 continue;
-            }else{
-                printf("From Conf Session %s: %s\n", recvMsg.source,recvMsg.data);
+            }
+            else{
+                printf("From Conf Session %s: %s\n", recvMsg.source,recvMsg.data); //Session message receive
             }
             
         }
 
         if( FD_ISSET(STDIN_FILENO, &read_fds ))
         {
-            /* The user typed something.  Read it fgets or something.
+            /* The user typed something.  Read it fgets
             Then send the data to the server. */
             fgets(inputPre, sizeof(inputPre), stdin);
             char * inputPost = strtok(inputPre, "\n");
@@ -287,7 +287,7 @@ int main( int argc, char *argv[] )
             }
             //printf("Sent: %s\n", messageString);
 
-            if(loggedIn && command == EXIT){
+            if(loggedIn && command == EXIT){ //free socket stuff after sending logout
                 freeaddrinfo(servinfo);
                 close(sockfd);
                 sockfd = -1;
@@ -308,7 +308,7 @@ int main( int argc, char *argv[] )
             struct Message recvMsg;
             parse_message(buffer, &recvMsg);
 
-            if (recvMsg.type == LO_NACK){ //would i close something already closed??
+            if (recvMsg.type == LO_NACK){ 
                 freeaddrinfo(servinfo);
                 close(sockfd);
                 sockfd = -1;
